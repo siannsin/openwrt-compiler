@@ -1,0 +1,494 @@
+name: Build OpenWrt
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      defconfig_config:
+        description: "Select device branch"
+        required: true
+        default: "ax3000t"
+        type: choice
+        options:
+          - ax3000t
+      DIR_DIY:
+        description: "[DIY] directory includes: .config, feeds.conf.default, diy-part1.sh, diy-part2.sh, files/"
+        required: true
+        default: "./DIY"
+        type: string
+      builder_name:
+        description: "[output] Set OpenWrt builder signature."
+        required: false
+        default: "grinch27"
+        type: string
+
+env:
+  SYSTEM_REPO: https://git.openwrt.org/openwrt/openwrt.git
+  SYSTEM_BRANCH: main
+  DIY_REPO: https://github.com/$GITHUB_REPOSITORY
+  DIY_BRANCH: main
+  TZ: America/New_York
+  config_branch: ${{ inputs.defconfig_config }}
+  # Path 使用绝对路径 DIR 使用文件夹名称
+  PATH_BUILD: /builder
+  PATH_REPO: /builder/openwrt
+  PATH_OUTPUT: /builder/openwrt/output
+  # Files 文件路径 默认./相对于仓库目录路径
+  DIR_DIY: ${{ inputs.DIR_DIY }}
+  CONFIG_FILE: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/.config
+  FEEDS_DEF: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/feeds.conf.default
+  FILES: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/files
+  DIY_P1_SH: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/diy-part1.sh
+  DIY_P2_SH: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/diy-part2.sh
+
+jobs:
+  build:
+    name: Build Openwrt
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Clear environment
+        id: clearinit
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          # 删除docker所有镜像
+          docker rmi $(docker images -q) 2>/dev/null
+          # 如果环境变量 AGENT_TOOLSDIRECTORY 不为空，则删除该目录及其所有内容
+          [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
+          # 删除指定的目录及其所有内容，忽略所有错误信息
+          sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android 2>/dev/null
+          # 关闭所有交换空间 删除指定的交换文件
+          sudo swapoff -a
+          sudo rm -f /swapfile /mnt/swapfile
+          df -Th
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Initialization environment
+        id: init
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          # 更新 Ubuntu 的软件包列表
+          sudo -E apt-get -y update
+          # 删除指定的软件包及其配置文件。如果删除失败，则忽略错误
+          sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
+          # 下载并安装指定 URL 中列出的软件包
+          # sudo -E apt-get -y install $(curl -fsSL https://is.gd/depend_ubuntu2204_openwrt)
+          # sudo apt-get install -y libgdbm-dev libsqlite3-dev tk-dev libbz2-dev
+          sudo -E apt-get -y install \
+          ack \
+          antlr3 \
+          asciidoc \
+          autoconf \
+          automake \
+          autopoint \
+          binutils \
+          bison \
+          build-essential \
+          bzip2 \
+          ccache \
+          clang \
+          clangd \
+          cmake \
+          cpio \
+          curl \
+          device-tree-compiler \
+          ecj \
+          fastjar \
+          flex \
+          gawk \
+          gettext \
+          gcc-multilib \
+          g++-multilib \
+          git \
+          gperf \
+          haveged \
+          help2man \
+          intltool \
+          lib32gcc-s1 \
+          libc6-dev-i386 \
+          libelf-dev \
+          libglib2.0-dev \
+          libgmp3-dev \
+          libltdl-dev \
+          libmpc-dev \
+          libmpfr-dev \
+          libncurses5-dev \
+          libncursesw5 \
+          libncursesw5-dev \
+          libreadline-dev \
+          libssl-dev \
+          libtool \
+          lld \
+          lldb \
+          lrzsz \
+          mkisofs \
+          msmtp \
+          nano \
+          ninja-build \
+          p7zip \
+          p7zip-full \
+          patch \
+          pkgconf \
+          python3 \
+          python3-distutils \
+          python3-docutils \
+          python3-pip \
+          python3-ply \
+          qemu-utils \
+          re2c \
+          rsync \
+          scons \
+          squashfs-tools \
+          subversion \
+          swig \
+          texinfo \
+          uglifyjs \
+          unzip \
+          vim \
+          wget \
+          xmlto \
+          xxd \
+          zlib1g-dev 
+          # 重新加载 systemd 的配置
+          sudo -E systemctl daemon-reload
+          # 删除所有不再需要的软件包及其配置文件, 清理 apt 的缓存
+          sudo -E apt-get -y autoremove --purge
+          sudo -E apt-get clean
+          # 从 root 用户的 .bashrc 和 .profile 文件中删除包含 NVM_DIR 和 skel 的行
+          sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
+          # 删除指定的目录及其所有内容
+          sudo rm -rf ~/{.cargo,.dotnet,.rustup}
+          # 设置系统的时区为环境变量 TZ 指定的值
+          sudo timedatectl set-timezone "${TZ}"
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Create simulated physical disk
+        id: disk
+        working-directory: /
+        if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          # 计算 /mnt 分区的可用空间（减去 1GB 作为缓冲）, 计算根分区的可用空间（减去 4GB 作为缓冲）
+          mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
+          root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
+          # 创建一个大小为 mnt_size 的文件 /mnt/mnt.img, 创建一个大小为 root_size 的文件 /root.img
+          sudo truncate -s "${mnt_size}"G /mnt/mnt.img
+          sudo truncate -s "${root_size}"G /root.img
+          # 将这两个文件关联到 loop 设备, 在这两个 loop 设备上创建物理卷, 创建一个名为 github 的卷组，包含这两个物理卷
+          sudo losetup /dev/loop6 /mnt/mnt.img
+          sudo losetup /dev/loop7 /root.img
+          sudo pvcreate /dev/loop6
+          sudo pvcreate /dev/loop7
+          sudo vgcreate github /dev/loop6 /dev/loop7
+
+          # 在 github 卷组上创建一个名为 runner 的逻辑卷，使用所有可用空间, 在 runner 逻辑卷上创建一个 XFS 文件系统
+          sudo lvcreate -n runner -l 100%FREE github
+          sudo mkfs.xfs /dev/github/runner
+          # 创建一个挂载点 ${PATH_BUILD}, 将 runner 逻辑卷挂载到 ${PATH_BUILD}, 将 ${PATH_BUILD} 的所有者和组更改为 runner
+          sudo mkdir -p ${PATH_BUILD}
+          sudo mount /dev/github/runner ${PATH_BUILD}
+          sudo chown -R runner.runner ${PATH_BUILD}
+
+          df -Th
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Clone System
+        id: clonesys
+        working-directory: ${{ env.PATH_BUILD }}
+        if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          git clone ${SYSTEM_REPO} ${PATH_REPO} --single-branch --depth=1 --branch=${SYSTEM_BRANCH} 
+          echo -e "SYSTEM_REPO: [ ${SYSTEM_REPO} ]\nSYSTEM_BRANCH: [ ${SYSTEM_BRANCH} ]"
+
+          df -hT ${PWD}
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Clone DIY
+        id: clonediy
+        working-directory: ${{ env.PATH_BUILD }}
+        if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          git clone ${DIY_REPO} ${PATH_REPO} --single-branch --depth=1 --branch=${DIY_BRANCH} 
+          echo -e "DIY_REPO: [ ${DIY_REPO} ]\nDIY_BRANCH: [ ${DIY_BRANCH} ]"
+
+          df -hT ${PWD}
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: (feeds.conf.default) Load custom feeds
+        working-directory: ${{ env.PATH_REPO }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          if [[ -e "${FEEDS_DEF}" && ! "${FEEDS_DEF}" -ef "${PATH_REPO}/feeds.conf.default" ]]; then
+            echo -e "FEEDS_DEF: ${FEEDS_DEF}"
+            cp -f ${FEEDS_DEF} ${PATH_REPO}/feeds.conf.default
+          fi
+
+      - name: (DIY_P1.sh) after load feeds, before update feeds
+        working-directory: ${{ env.PATH_REPO }}
+        env:
+          SCRIPT_FILE: ${{ env.DIY_P1_SH }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          if [[ -e "${SCRIPT_FILE}" ]]; then
+            echo -e "SCRIPT_FILE: ${SCRIPT_FILE}"
+            chmod +x ${SCRIPT_FILE}
+            bash ${SCRIPT_FILE}
+            cat ${SCRIPT_FILE}
+          fi
+
+      - name: Update feeds
+        id: update
+        working-directory: ${{ env.PATH_REPO }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          cat ./feeds.conf.default
+          ./scripts/feeds update -a
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Install feeds
+        id: install
+        working-directory: ${{ env.PATH_REPO }}
+        if: ${{ steps.update.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          ./scripts/feeds install -a
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: (/files) Load custom files
+        id: files
+        working-directory: ${{ env.PATH_REPO }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          mkdir -p ./files/etc/config
+          if [[ -e "${FILES}" ]]; then
+              cp -rf ${FILES}/* ./files/
+          fi
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: (.config) Load custom configuration
+        id: config
+        working-directory: ${{ env.PATH_REPO }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          if [[ ! -e "${PATH_REPO}/.config" ]]; then
+            echo ".config file not found, generating default config..."
+            make defconfig
+          fi
+
+          if [[ -e "${CONFIG_FILE}" && ! "${CONFIG_FILE}" -ef "${PATH_REPO}/.config" ]]; then
+            echo -e "CONFIG_FILE: ${CONFIG_FILE}"
+            cp -f ${CONFIG_FILE} ${PATH_REPO}/.config
+          fi
+
+          cat ./.config
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: (DIY_P2.sh) after install feeds, before download package
+        working-directory: ${{ env.PATH_REPO }}
+        env:
+          SCRIPT_FILE: ${{ env.DIY_P2_SH }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          if [[ -e "${SCRIPT_FILE}" ]]; then
+            echo -e "SCRIPT_FILE: ${SCRIPT_FILE}"
+            chmod +x ${SCRIPT_FILE}
+            bash ${SCRIPT_FILE}
+            cat ${SCRIPT_FILE}
+          fi
+
+      - name: Download package
+        id: package
+        working-directory: ${{ env.PATH_REPO }}
+        env:
+          FORCE_UNSAFE_CONFIGURE: 1
+        if: ${{ steps.install.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          echo "make oldconfig: update .config file..."
+          make oldconfig
+          cat ./.config
+          echo -e "make download: $(($(nproc) + 1)) thread"
+          make download -j$(($(nproc) + 1))
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Compile the OpenWrt
+        id: compile
+        working-directory: ${{ env.PATH_REPO }}
+        env:
+          FORCE_UNSAFE_CONFIGURE: 1
+        if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          echo -e "$(($(nproc) + 1)) thread compile"
+          make -j$(($(nproc) + 1)) V=s
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Copy to output
+        id: copy
+        working-directory: /
+        env:
+          PATH_TARGET: ${{ env.PATH_REPO }}/bin/targets/*/*/*
+        if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          [[ -e "${PATH_OUTPUT}" ]] || mkdir -p ${PATH_OUTPUT}
+          cp -rf ${PATH_TARGET} ${PATH_OUTPUT}/
+          cp -f ${PATH_REPO}/.config ${PATH_OUTPUT}/config
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Setup output
+        id: output
+        working-directory: ${{ env.PATH_OUTPUT }}
+        env:
+          file_config: ./config
+        if: ${{ steps.copy.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          rm -rf packages
+
+          for file in *.bin
+          do
+            if [[ ! -d "${file}" ]]
+            then
+              sha256sum "${file}" > "${file}.sha"
+            fi
+          done
+
+          echo -e "timestamp=$(date +"%y%mw%V")" >> ${GITHUB_OUTPUT}
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: "[release.md] Record release.md"
+        id: record
+        working-directory: ${{ env.PATH_REPO }}
+        env:
+          # config_branch: ${{ inputs.defconfig_config }}
+          builder_name: ${{ inputs.builder_name }}
+          file_config: ./config
+          RELEASE_MD: ./release.md
+        if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          # 记录Clone源码的分支和构建者
+          echo -e "# Build ${config_branch} - by ${builder_name}" >> ${RELEASE_MD}
+          echo -e "\n### Source Code" >> ${RELEASE_MD}
+          echo -e "\n- [${SYSTEM_BRANCH}](${SYSTEM_REPO})" >> ${RELEASE_MD}
+
+          # 记录DIY_P1.sh
+          SCRIPT_FILE=${{ env.DIY_P1_SH }}
+          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
+          code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          # 折叠使用bash代码块 高亮代码
+          echo -e "\n### ${SCRIPT_FILE}" >> ${RELEASE_MD}
+          echo -e "\n<details>\n<summary>Bash</summary>" >> ${RELEASE_MD}
+          echo -e "\n```bash" >> ${RELEASE_MD}
+          echo "${code_script}" >> ${RELEASE_MD}
+          echo -e "```" >> ${RELEASE_MD}
+          echo -e "\n</details>" >> ${RELEASE_MD}
+
+          # 记录feeds.conf.default
+          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
+          code_feeds=$(grep '^[^#]' ./feeds.conf.default | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          # 折叠使用bash代码块 高亮代码
+          echo -e "\n### feeds setting" >> ${RELEASE_MD}
+          echo -e "\n<details>\n<summary>feeds.conf.default</summary>" >> ${RELEASE_MD}
+          echo -e "\n```bash" >> ${RELEASE_MD}
+          echo "${code_feeds}" >> ${RELEASE_MD}
+          echo -e "```" >> ${RELEASE_MD}
+          echo -e "\n</details>" >> ${RELEASE_MD}
+
+          # 记录DIY_P2.sh
+          SCRIPT_FILE=${{ env.DIY_P2_SH }}
+          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
+          # code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          # 折叠使用bash代码块 高亮代码
+          echo -e "\n### ${SCRIPT_FILE}" >> ${RELEASE_MD}
+          echo -e "\n<details>\n<summary>Bash</summary>" >> ${RELEASE_MD}
+          echo -e "\n```bash" >> ${RELEASE_MD}
+          grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g' >> ${RELEASE_MD}
+          echo -e "```" >> ${RELEASE_MD}
+          echo -e "\n</details>" >> ${RELEASE_MD}
+
+          # 记录.config配置
+          if [[ -f ${file_config} ]]; then
+            # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
+            config=$(grep '^[^#]' ${file_config} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+            # 折叠使用makefile代码块 高亮config设置
+            echo -e "\n### config setting" >> ${RELEASE_MD}
+            echo -e "\n<details>\n<summary>config</summary>" >> ${RELEASE_MD}
+            echo -e "\n```makefile" >> ${RELEASE_MD}
+            echo "${config}" >> ${RELEASE_MD}
+            echo -e "```" >> ${RELEASE_MD}
+            echo -e "\n</details>" >> ${RELEASE_MD}
+          fi
+
+          # 记录编译完成时间
+          echo -e "\n### Record Time" >> ${RELEASE_MD}
+          echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${RELEASE_MD}
+
+          # 切换到Output目录
+          # cd ${PATH_OUTPUT}
+          # echo -e "Current working directory: $(pwd)"
+
+          # 记录Output bin文件
+          echo -e "\n### Tested or NOT\n\n" >> ${RELEASE_MD}
+          for file in ${PATH_OUTPUT}/*.bin
+          do
+            if [[ ! -d "${file}" ]]
+            then
+              echo -e "- [ ] ${file}" >> ${RELEASE_MD}
+            fi
+          done
+
+          # 将仓库 URL 写入到 GITHUB_OUTPUT 环境变量指定的文件中
+          # echo "TAGS_NAME=${TAGS_NAME}" >> ${GITHUB_OUTPUT}
+          # Set output information 将构建标签和日期信息写入到 GITHUB_OUTPUT 环境变量指定的文件中
+
+          echo -e "record=${RELEASE_MD}" >> ${GITHUB_OUTPUT}
+
+      # https://github.com/ncipollo/release-action/blob/main/README.zh-Hans.md
+      - name: Upload OpenWrt to Release
+        uses: ncipollo/release-action@main
+        if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
+        env:
+          # config_branch: ${{ inputs.defconfig_config }}
+          timestamp: ${{ steps.output.outputs.timestamp }}
+          RELEASE_MD: ${{ steps.record.outputs.record }}
+        with:
+          name: "${{ env.timestamp }} ${{ env.config_branch }}"
+          tag: "${{ env.config_branch }}"
+          artifacts: "${{ env.PATH_OUTPUT }}/*"
+          allowUpdates: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          bodyFile: "${{ env.RELEASE_MD }}"
+
+      - name: Clear workspace
+        id: clearwork
+        working-directory: ${{ env.PATH_REPO }}
+        run: |
+          # rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
+          rm -rf ./* 2>/dev/null
+          df -hT ${PWD}
+          echo "status=success" >> ${GITHUB_OUTPUT}
