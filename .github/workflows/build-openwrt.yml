@@ -14,7 +14,7 @@ on:
       PATH_DIY:
         description: "[DIY] directory includes: .config, feeds.conf.default, diy-part1.sh, diy-part2.sh, files/"
         required: true
-        default: "/builder/DIY"
+        default: "./DIY"
         type: string
       builder_name:
         description: "[output] Set OpenWrt builder signature."
@@ -222,7 +222,7 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${DIY_REPO} ${PATH_REPO} --single-branch --depth=1 --branch=${DIY_BRANCH} 
+          git clone ${DIY_REPO} ${PATH_DIY} --single-branch --depth=1 --branch=${DIY_BRANCH} 
           echo -e "DIY_REPO: [ ${DIY_REPO} ]\nDIY_BRANCH: [ ${DIY_BRANCH} ]"
 
           df -hT ${PWD}
