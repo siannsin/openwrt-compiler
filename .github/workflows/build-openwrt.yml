@@ -25,7 +25,7 @@ on:
 env:
   SYSTEM_REPO: https://git.openwrt.org/openwrt/openwrt.git
   SYSTEM_BRANCH: main
-  DIY_REPO: https://github.com/Grinch27/openwrt-xiaomi-ax3000t
+  DIY_REPO: https://github.com/Grinch27/openwrt-xiaomi-ax3000t.git
   DIY_BRANCH: main
   TZ: America/New_York
   config_branch: ${{ inputs.defconfig_config }}
@@ -217,7 +217,7 @@ jobs:
 
       - name: Clone DIY
         id: clonediy
-        working-directory: ${{ env.PATH_BUILD }}
+        working-directory: ${{ env.PATH_REPO }}
         if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -388,6 +388,8 @@ jobs:
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
+
+          touch ${RELEASE_MD}
 
           # 记录Clone源码的分支和构建者
           echo -e "# Build ${config_branch} - by ${builder_name}" >> ${RELEASE_MD}
