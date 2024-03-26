@@ -323,8 +323,8 @@ jobs:
         if: ${{ steps.install.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
-          echo "make oldconfig: update .config file..."
-          make oldconfig
+          # echo "make oldconfig: update .config file..."
+          # make oldconfig
           cat ./.config
           echo -e "make download: $(($(nproc) + 1)) thread"
           make download -j$(($(nproc) + 1))
