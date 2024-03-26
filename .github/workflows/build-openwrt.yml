@@ -25,7 +25,7 @@ on:
 env:
   SYSTEM_REPO: https://git.openwrt.org/openwrt/openwrt.git
   SYSTEM_BRANCH: main
-  DIY_REPO: https://github.com/$GITHUB_REPOSITORY
+  DIY_REPO: https://github.com/Grinch27/openwrt-xiaomi-ax3000t
   DIY_BRANCH: main
   TZ: America/New_York
   config_branch: ${{ inputs.defconfig_config }}
