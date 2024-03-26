@@ -291,6 +291,8 @@ jobs:
           if [[ -e "${CONFIG_FILE}" && ! "${CONFIG_FILE}" -ef "${PATH_REPO}/.config" ]]; then
             echo -e "CONFIG_FILE: ${CONFIG_FILE}"
             cp -f ${CONFIG_FILE} ${PATH_REPO}/.config
+          else
+            echo "Cannot find the custom CONFIG_FILE"
           fi
 
           if [[ ! -e "${PATH_REPO}/.config" ]]; then
