@@ -35,7 +35,7 @@ env:
   PATH_OUTPUT: /builder/openwrt/output
   # DIY Files
   PATH_DIY: ${{ inputs.PATH_DIY }}
-  CONFIG_FILE: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/.config
+  CONFIG_FILE: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/ax3000t.config
   FEEDS_DEF: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/feeds.conf.default
   FILES: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/files
   DIY_P1_SH: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/diy-part1.sh
