@@ -11,10 +11,10 @@ on:
         type: choice
         options:
           - ax3000t
-      DIR_DIY:
+      PATH_DIY:
         description: "[DIY] directory includes: .config, feeds.conf.default, diy-part1.sh, diy-part2.sh, files/"
         required: true
-        default: "./DIY"
+        default: "/builder/DIY"
         type: string
       builder_name:
         description: "[output] Set OpenWrt builder signature."
@@ -33,13 +33,13 @@ env:
   PATH_BUILD: /builder
   PATH_REPO: /builder/openwrt
   PATH_OUTPUT: /builder/openwrt/output
-  # Files 文件路径 默认./相对于仓库目录路径
-  DIR_DIY: ${{ inputs.DIR_DIY }}
-  CONFIG_FILE: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/.config
-  FEEDS_DEF: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/feeds.conf.default
-  FILES: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/files
-  DIY_P1_SH: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/diy-part1.sh
-  DIY_P2_SH: ${{ inputs.DIR_DIY }}/${{ inputs.defconfig_config }}/diy-part2.sh
+  # DIY Files
+  PATH_DIY: ${{ inputs.PATH_DIY }}
+  CONFIG_FILE: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/.config
+  FEEDS_DEF: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/feeds.conf.default
+  FILES: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/files
+  DIY_P1_SH: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/diy-part1.sh
+  DIY_P2_SH: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/diy-part2.sh
 
 jobs:
   build:
