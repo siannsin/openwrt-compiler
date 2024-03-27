@@ -40,6 +40,7 @@ env:
   FILES: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/files
   DIY_P1_SH: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/diy-part1.sh
   DIY_P2_SH: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/diy-part2.sh
+  RELEASE_MD: /builder/openwrt/release.md
 
 jobs:
   build:
@@ -387,7 +388,6 @@ jobs:
           # config_branch: ${{ inputs.defconfig_config }}
           builder_name: ${{ inputs.builder_name }}
           file_config: ./config
-          RELEASE_MD: ./release.md
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -469,7 +469,7 @@ jobs:
           # echo "TAGS_NAME=${TAGS_NAME}" >> ${GITHUB_OUTPUT}
           # Set output information 将构建标签和日期信息写入到 GITHUB_OUTPUT 环境变量指定的文件中
 
-          echo -e "record=${RELEASE_MD}" >> ${GITHUB_OUTPUT}
+          # echo -e "record=${RELEASE_MD}" >> ${GITHUB_OUTPUT}
 
       # https://github.com/ncipollo/release-action/blob/main/README.zh-Hans.md
       - name: Upload OpenWrt to Release
@@ -478,7 +478,7 @@ jobs:
         env:
           # config_branch: ${{ inputs.defconfig_config }}
           timestamp: ${{ steps.output.outputs.timestamp }}
-          RELEASE_MD: ${{ steps.record.outputs.record }}
+          # RELEASE_MD: ${{ steps.record.outputs.record }}
         with:
           name: "${{ env.timestamp }} ${{ env.config_branch }}"
           tag: "${{ env.config_branch }}"
