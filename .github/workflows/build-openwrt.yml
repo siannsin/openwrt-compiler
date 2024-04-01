@@ -16,9 +16,10 @@ on:
       device_branch:
         description: "Select device branch"
         required: true
-        default: "ax3000t"
+        default: "mt7981"
         type: choice
         options:
+          - mt7981
           - ax3000t
       builder_name:
         description: "[output] Set OpenWrt builder signature."
@@ -450,13 +451,13 @@ jobs:
 
           rm -rf packages
 
-          for file in *.bin
-          do
-            if [[ ! -d "${file}" ]]
-            then
-              sha256sum "${file}" > "${file}.sha"
-            fi
-          done
+          # for file in *.bin
+          # do
+          #   if [[ ! -d "${file}" ]]
+          #   then
+          #     sha256sum "${file}" > "${file}.sha"
+          #   fi
+          # done
 
           echo -e "timestamp=$(date +"%y%mw%V")" >> ${GITHUB_OUTPUT}
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -560,8 +561,8 @@ jobs:
           timestamp: ${{ steps.output.outputs.timestamp }}
           # release_md: ${{ steps.record.outputs.record }}
         with:
-          name: "${{ env.timestamp }} ${{ env.device_branch }}"
-          tag: "${{ env.device_branch }}"
+          name: "${{ env.openwrt_branch }}_${{ env.device_branch }}_${{ env.timestamp }}"
+          tag: "${{ env.openwrt_branch }}"
           artifacts: "${{ env.path_output }}/*"
           allowUpdates: true
           removeArtifacts: false
