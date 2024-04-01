@@ -4,7 +4,16 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-      defconfig_config:
+      openwrt_branch:
+        description: "Select openwrt branch"
+        required: true
+        default: "openwrt"
+        type: choice
+        options:
+          - openwrt
+          - immortalwrt
+          - immortalwrt-mt798x
+      device_branch:
         description: "Select device branch"
         required: true
         default: "ax3000t"
@@ -23,24 +32,25 @@ on:
         type: string
 
 env:
+  OPENWRT_BRANCH: ${{ inputs.openwrt_branch }}
   SYSTEM_REPO: https://git.openwrt.org/openwrt/openwrt.git
   SYSTEM_BRANCH: main
   DIY_REPO: https://github.com/Grinch27/openwrt-xiaomi-ax3000t.git
-  DIY_BRANCH: main
+  FILE_BRANCH: openwrt
   TZ: America/New_York
-  config_branch: ${{ inputs.defconfig_config }}
+  config_branch: ${{ inputs.device_branch }}
   # Path 使用绝对路径 DIR 使用文件夹名称
   PATH_BUILD: /builder
   PATH_REPO: /builder/openwrt
   PATH_OUTPUT: /builder/openwrt/output
+  RELEASE_MD: /builder/openwrt/release.md
   # DIY Files
   PATH_DIY: ${{ inputs.PATH_DIY }}
-  CONFIG_FILE: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/ax3000t.config
-  FEEDS_DEF: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/feeds.conf.default
-  FILES: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/files
-  DIY_P1_SH: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/diy-part1.sh
-  DIY_P2_SH: ${{ inputs.PATH_DIY }}/${{ inputs.defconfig_config }}/diy-part2.sh
-  RELEASE_MD: /builder/openwrt/release.md
+  CONFIG_FILE: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/ax3000t.config
+  FEEDS_DEF: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/feeds.conf.default
+  FILES: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/files
+  DIY_P1_SH: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/diy-part1.sh
+  DIY_P2_SH: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/diy-part2.sh
 
 jobs:
   build:
@@ -51,6 +61,84 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set environment variable
+        id: var
+        run: |
+          # Set OpenWrt repo branch
+          openwrt_branch="${{ inputs.openwrt_branch }}"
+          echo "openwrt_branch=${openwrt_branch}" >> "$GITHUB_ENV"
+          if [[ "${openwrt_branch}" == "openwrt" ]]; then
+              repo_url="https://github.com/openwrt/openwrt"
+              repo_branch="main"
+              release_tag="openwrt"
+          elif [[ "${{ inputs.openwrt_branch }}" == "immortalwrt" ]]; then
+              repo_url="https://github.com/immortalwrt/immortalwrt"
+              repo_branch="master"
+              release_tag="immortalwrt"
+          elif [[ "${{ inputs.openwrt_branch }}" == "immortalwrt-mt798x" ]]; then
+              repo_url="https://github.com/hanwckf/immortalwrt-mt798x"
+              repo_branch="openwrt-21.02"
+              release_tag="immortalwrt-mt798x"
+          fi
+          echo "repo_url=${repo_url}" >> "$GITHUB_ENV"
+          echo "repo_branch=${repo_branch}" >> "$GITHUB_ENV"
+          echo "release_tag=${release_tag}" >> "$GITHUB_ENV"
+
+          # Set DIY Info
+          diy_repo="https://github.com/$GITHUB_REPOSITORY"
+          echo "diy_repo=${diy_repo}" >> "$GITHUB_ENV"
+          diy_owner="$GITHUB_REPOSITORY_OWNER"
+          echo "diy_owner=${diy_owner}" >> "$GITHUB_ENV"
+
+          # path var
+          path_build="/builder"
+          path_openwrt="${path_build}/${openwrt_branch}"
+          path_output="${path_openwrt}/output"
+          release_md="${path_openwrt}/release.md"
+          # DIY Files
+          path_diy="${path_openwrt}/DIY"
+          config_file="${path_diy}/${openwrt_branch}/ax3000t.config"
+          feeds_def="${path_diy}/${openwrt_branch}/feeds.conf.default"
+          files="${path_diy}/${openwrt_branch}/files"
+          diy_p1_sh="${path_diy}/${openwrt_branch}/diy-part1.sh"
+          diy_p2_sh="${path_diy}/${openwrt_branch}/diy-part2.sh"
+
+          echo "path_build=${path_build}" >> "$GITHUB_ENV"
+          echo "path_openwrt=${path_openwrt}" >> "$GITHUB_ENV"
+          echo "path_output=${path_output}" >> "$GITHUB_ENV"
+          echo "release_md=${release_md}" >> "$GITHUB_ENV"
+          echo "path_diy=${path_diy}" >> "$GITHUB_ENV"
+          echo "config_file=${config_file}" >> "$GITHUB_ENV"
+          echo "feeds_def=${feeds_def}" >> "$GITHUB_ENV"
+          echo "files=${files}" >> "$GITHUB_ENV"
+          echo "diy_p1_sh=${diy_p1_sh}" >> "$GITHUB_ENV"
+          echo "diy_p2_sh=${diy_p2_sh}" >> "$GITHUB_ENV"
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Check environment var - ${{ inputs.openwrt_branch }}
+        id: checkenv
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          echo -e "openwrt_branch: ${openwrt_branch}"
+          echo -e "repo_url: ${repo_url}"
+          echo -e "repo_branch: ${repo_branch}"
+          echo -e "release_tag: ${release_tag}"
+          echo -e "diy_repo: ${diy_repo}"
+          echo -e "diy_owner: ${diy_owner}"
+          echo -e "path_build: ${path_build}"
+          echo -e "path_openwrt: ${path_openwrt}"
+          echo -e "path_output: ${path_output}"
+          echo -e "release_md: ${release_md}"
+          echo -e "path_diy: ${path_diy}"
+          echo -e "config_file: ${config_file}"
+          echo -e "feeds_def: ${feeds_def}"
+          echo -e "files: ${files}"
+          echo -e "diy_p1_sh: ${diy_p1_sh}"
+          echo -e "diy_p2_sh: ${diy_p2_sh}"
+          echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Clear environment
         id: clearinit
@@ -212,7 +300,7 @@ jobs:
           echo -e "Current working directory: $(pwd)"
 
           git clone ${SYSTEM_REPO} ${PATH_REPO} --single-branch --depth=1 --branch=${SYSTEM_BRANCH} 
-          echo -e "SYSTEM_REPO: [ ${SYSTEM_REPO} ]\nSYSTEM_BRANCH: [ ${SYSTEM_BRANCH} ]"
+          echo -e "SYSTEM_REPO: [ ${SYSTEM_REPO} ]\nBRANCH: [ ${SYSTEM_BRANCH} ]"
 
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -224,8 +312,8 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${DIY_REPO} ${PATH_DIY} --single-branch --depth=1 --branch=${DIY_BRANCH} 
-          echo -e "DIY_REPO: [ ${DIY_REPO} ]\nDIY_BRANCH: [ ${DIY_BRANCH} ]"
+          git clone ${DIY_REPO} ${PATH_DIY} --single-branch --depth=1 --branch=main
+          echo -e "DIY_REPO: [ ${DIY_REPO} ]\nBRANCH: [ main ]"
 
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -385,7 +473,7 @@ jobs:
         id: record
         working-directory: ${{ env.PATH_REPO }}
         env:
-          # config_branch: ${{ inputs.defconfig_config }}
+          # config_branch: ${{ inputs.device_branch }}
           builder_name: ${{ inputs.builder_name }}
           file_config: ./config
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
@@ -476,7 +564,7 @@ jobs:
         uses: ncipollo/release-action@main
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         env:
-          # config_branch: ${{ inputs.defconfig_config }}
+          # config_branch: ${{ inputs.device_branch }}
           timestamp: ${{ steps.output.outputs.timestamp }}
           # RELEASE_MD: ${{ steps.record.outputs.record }}
         with:
@@ -487,8 +575,8 @@ jobs:
           removeArtifacts: false
           replacesArtifacts: true
           token: "${{ secrets.GITHUB_TOKEN }}"
-          # bodyFile: "${{ env.RELEASE_MD }}"
-          body: ""
+          bodyFile: "${{ env.RELEASE_MD }}"
+          # body: ""
 
       - name: Clear workspace
         id: clearwork
