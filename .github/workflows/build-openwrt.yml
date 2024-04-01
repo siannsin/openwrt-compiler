@@ -398,17 +398,22 @@ jobs:
             cat ${SCRIPT_FILE}
           fi
 
-      - name: Download package
-        id: package
+      - name: (.config) Update
         working-directory: ${{ env.path_openwrt }}
-        env:
-          FORCE_UNSAFE_CONFIGURE: 1
-        if: ${{ steps.install.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
           echo "make oldconfig: update .config file..."
           make oldconfig
           cat ./.config
+
+      - name: Download package
+        id: package
+        working-directory: ${{ env.path_openwrt }}
+        # env:
+        #   FORCE_UNSAFE_CONFIGURE: 1
+        if: ${{ steps.install.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
           echo -e "make download: $(($(nproc) + 1)) thread"
           make download -j$(($(nproc) + 1))
           # find dl -size -1024c -exec ls -l {} \;
@@ -418,8 +423,8 @@ jobs:
       - name: Compile the OpenWrt
         id: compile
         working-directory: ${{ env.path_openwrt }}
-        env:
-          FORCE_UNSAFE_CONFIGURE: 1
+        # env:
+        #   FORCE_UNSAFE_CONFIGURE: 1
         if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
