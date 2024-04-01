@@ -20,11 +20,6 @@ on:
         type: choice
         options:
           - ax3000t
-      PATH_DIY:
-        description: "[DIY] directory includes: .config, feeds.conf.default, diy-part1.sh, diy-part2.sh, files/"
-        required: true
-        default: "./DIY"
-        type: string
       builder_name:
         description: "[output] Set OpenWrt builder signature."
         required: false
@@ -32,25 +27,11 @@ on:
         type: string
 
 env:
-  OPENWRT_BRANCH: ${{ inputs.openwrt_branch }}
-  SYSTEM_REPO: https://git.openwrt.org/openwrt/openwrt.git
-  SYSTEM_BRANCH: main
-  DIY_REPO: https://github.com/Grinch27/openwrt-xiaomi-ax3000t.git
-  FILE_BRANCH: openwrt
+  repo_openwrt: https://git.openwrt.org/openwrt/openwrt.git
   TZ: America/New_York
-  config_branch: ${{ inputs.device_branch }}
+  openwrt_branch: ${{ inputs.openwrt_branch }}
+  device_branch: ${{ inputs.device_branch }}
   # Path 使用绝对路径 DIR 使用文件夹名称
-  PATH_BUILD: /builder
-  PATH_REPO: /builder/openwrt
-  PATH_OUTPUT: /builder/openwrt/output
-  RELEASE_MD: /builder/openwrt/release.md
-  # DIY Files
-  PATH_DIY: ${{ inputs.PATH_DIY }}
-  CONFIG_FILE: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/ax3000t.config
-  FEEDS_DEF: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/feeds.conf.default
-  FILES: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/files
-  DIY_P1_SH: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/diy-part1.sh
-  DIY_P2_SH: ${{ inputs.PATH_DIY }}/${{ inputs.device_branch }}/diy-part2.sh
 
 jobs:
   build:
@@ -64,80 +45,91 @@ jobs:
 
       - name: Set environment variable
         id: var
+        working-directory: /
         run: |
-          # Set OpenWrt repo branch
-          openwrt_branch="${{ inputs.openwrt_branch }}"
-          echo "openwrt_branch=${openwrt_branch}" >> "$GITHUB_ENV"
+          echo -e "Current working directory: $(pwd)"
+
+          # ========== Set OpenWrt repo branch ==========
+          repo_diy="https://github.com/$GITHUB_REPOSITORY"
+          repo_diy_owner="$GITHUB_REPOSITORY_OWNER"
+
           if [[ "${openwrt_branch}" == "openwrt" ]]; then
-              repo_url="https://github.com/openwrt/openwrt"
-              repo_branch="main"
-              release_tag="openwrt"
-          elif [[ "${{ inputs.openwrt_branch }}" == "immortalwrt" ]]; then
-              repo_url="https://github.com/immortalwrt/immortalwrt"
-              repo_branch="master"
-              release_tag="immortalwrt"
-          elif [[ "${{ inputs.openwrt_branch }}" == "immortalwrt-mt798x" ]]; then
-              repo_url="https://github.com/hanwckf/immortalwrt-mt798x"
-              repo_branch="openwrt-21.02"
-              release_tag="immortalwrt-mt798x"
+              repo_openwrt="https://github.com/openwrt/openwrt"
+              repo_openwrt_branch="main"
+          elif [[ "${openwrt_branch}" == "immortalwrt" ]]; then
+              repo_openwrt="https://github.com/immortalwrt/immortalwrt"
+              repo_openwrt_branch="master"
+          elif [[ "${openwrt_branch}" == "immortalwrt-mt798x" ]]; then
+              repo_openwrt="https://github.com/hanwckf/immortalwrt-mt798x"
+              repo_openwrt_branch="openwrt-21.02"
           fi
-          echo "repo_url=${repo_url}" >> "$GITHUB_ENV"
-          echo "repo_branch=${repo_branch}" >> "$GITHUB_ENV"
-          echo "release_tag=${release_tag}" >> "$GITHUB_ENV"
 
-          # Set DIY Info
-          diy_repo="https://github.com/$GITHUB_REPOSITORY"
-          echo "diy_repo=${diy_repo}" >> "$GITHUB_ENV"
-          diy_owner="$GITHUB_REPOSITORY_OWNER"
-          echo "diy_owner=${diy_owner}" >> "$GITHUB_ENV"
+          echo "repo_diy=${repo_diy}" >> "$GITHUB_ENV"
+          echo "repo_diy_owner=${repo_diy_owner}" >> "$GITHUB_ENV"
+          echo "repo_openwrt=${repo_openwrt}" >> "$GITHUB_ENV"
+          echo "repo_openwrt_branch=${repo_openwrt_branch}" >> "$GITHUB_ENV"
 
-          # path var
+          # ========== Build Path ==========
+          dir_diy="DIY"
+          dir_output="output"
+          # ---------- / ----------
           path_build="/builder"
           path_openwrt="${path_build}/${openwrt_branch}"
-          path_output="${path_openwrt}/output"
-          release_md="${path_openwrt}/release.md"
-          # DIY Files
-          path_diy="${path_openwrt}/DIY"
-          config_file="${path_diy}/${openwrt_branch}/ax3000t.config"
-          feeds_def="${path_diy}/${openwrt_branch}/feeds.conf.default"
-          files="${path_diy}/${openwrt_branch}/files"
-          diy_p1_sh="${path_diy}/${openwrt_branch}/diy-part1.sh"
-          diy_p2_sh="${path_diy}/${openwrt_branch}/diy-part2.sh"
+          # ---------- path_openwrt/ ----------
+          path_output="${path_openwrt}/${dir_output}"
+          path_diy="${path_openwrt}/${dir_diy}"
+          path_diy_branch="${path_diy}/${openwrt_branch}"
 
           echo "path_build=${path_build}" >> "$GITHUB_ENV"
           echo "path_openwrt=${path_openwrt}" >> "$GITHUB_ENV"
           echo "path_output=${path_output}" >> "$GITHUB_ENV"
-          echo "release_md=${release_md}" >> "$GITHUB_ENV"
           echo "path_diy=${path_diy}" >> "$GITHUB_ENV"
-          echo "config_file=${config_file}" >> "$GITHUB_ENV"
-          echo "feeds_def=${feeds_def}" >> "$GITHUB_ENV"
-          echo "files=${files}" >> "$GITHUB_ENV"
+          echo "path_diy_branch=${path_diy_branch}" >> "$GITHUB_ENV"
+
+          # ========== DIY Files ==========
+          diy_config="${path_diy_branch}/${device_branch}.config"
+          diy_feeds="${path_diy_branch}/feeds.conf.default"
+          diy_p1_sh="${path_diy_branch}/diy-part1.sh"
+          diy_p2_sh="${path_diy_branch}/diy-part2.sh"
+          diy_files="${path_diy_branch}/files"
+          release_md="${path_diy_branch}/release.md"
+
+          echo "diy_config=${diy_config}" >> "$GITHUB_ENV"
+          echo "diy_feeds=${diy_feeds}" >> "$GITHUB_ENV"
           echo "diy_p1_sh=${diy_p1_sh}" >> "$GITHUB_ENV"
           echo "diy_p2_sh=${diy_p2_sh}" >> "$GITHUB_ENV"
+          echo "diy_files=${diy_files}" >> "$GITHUB_ENV"
+          echo "release_md=${release_md}" >> "$GITHUB_ENV"
 
+          # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Check environment var - ${{ inputs.openwrt_branch }}
+      - name: Check ${{ inputs.openwrt_branch }} environment variable
         id: checkenv
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
-          echo -e "openwrt_branch: ${openwrt_branch}"
-          echo -e "repo_url: ${repo_url}"
-          echo -e "repo_branch: ${repo_branch}"
-          echo -e "release_tag: ${release_tag}"
-          echo -e "diy_repo: ${diy_repo}"
-          echo -e "diy_owner: ${diy_owner}"
+          echo -e "# ========== OpenWrt Info =========="
+          echo -e "repo_diy: ${repo_diy}"
+          echo -e "repo_diy_owner: ${repo_diy_owner}"
+          echo -e "repo_openwrt: ${repo_openwrt}"
+          echo -e "repo_openwrt_branch: ${repo_openwrt_branch}"
+          echo -e "# ========== Build Path =========="
+          echo -e "# ---------- / ----------"
           echo -e "path_build: ${path_build}"
+          echo -e "# ---------- path_openwrt/ ----------"
           echo -e "path_openwrt: ${path_openwrt}"
           echo -e "path_output: ${path_output}"
-          echo -e "release_md: ${release_md}"
           echo -e "path_diy: ${path_diy}"
-          echo -e "config_file: ${config_file}"
-          echo -e "feeds_def: ${feeds_def}"
-          echo -e "files: ${files}"
+          echo -e "path_diy_branch: ${path_diy_branch}"
+          echo -e "# ========== DIY Files =========="
+          echo -e "diy_config: ${diy_config}"
+          echo -e "diy_feeds: ${diy_feeds}"
           echo -e "diy_p1_sh: ${diy_p1_sh}"
           echo -e "diy_p2_sh: ${diy_p2_sh}"
+          echo -e "diy_files: ${diy_files}"
+          echo -e "release_md: ${release_md}"
+          # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Clear environment
@@ -284,53 +276,53 @@ jobs:
           # 在 github 卷组上创建一个名为 runner 的逻辑卷，使用所有可用空间, 在 runner 逻辑卷上创建一个 XFS 文件系统
           sudo lvcreate -n runner -l 100%FREE github
           sudo mkfs.xfs /dev/github/runner
-          # 创建一个挂载点 ${PATH_BUILD}, 将 runner 逻辑卷挂载到 ${PATH_BUILD}, 将 ${PATH_BUILD} 的所有者和组更改为 runner
-          sudo mkdir -p ${PATH_BUILD}
-          sudo mount /dev/github/runner ${PATH_BUILD}
-          sudo chown -R runner.runner ${PATH_BUILD}
+          # 创建一个挂载点 ${path_build}, 将 runner 逻辑卷挂载到 ${path_build}, 将 ${path_build} 的所有者和组更改为 runner
+          sudo mkdir -p ${path_build}
+          sudo mount /dev/github/runner ${path_build}
+          sudo chown -R runner.runner ${path_build}
 
           df -Th
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Clone System
         id: clonesys
-        working-directory: ${{ env.PATH_BUILD }}
+        working-directory: ${{ env.path_build }}
         if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${SYSTEM_REPO} ${PATH_REPO} --single-branch --depth=1 --branch=${SYSTEM_BRANCH} 
-          echo -e "SYSTEM_REPO: [ ${SYSTEM_REPO} ]\nBRANCH: [ ${SYSTEM_BRANCH} ]"
+          git clone ${repo_openwrt} ${path_openwrt} --single-branch --depth=1 --branch=${repo_openwrt_branch} 
+          echo -e "repo_openwrt: [ ${repo_openwrt} ]\nBRANCH: [ ${repo_openwrt_branch} ]"
 
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Clone DIY
         id: clonediy
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${DIY_REPO} ${PATH_DIY} --single-branch --depth=1 --branch=main
-          echo -e "DIY_REPO: [ ${DIY_REPO} ]\nBRANCH: [ main ]"
+          git clone ${repo_diy} ${path_diy} --single-branch --depth=1 --branch=main
+          echo -e "repo_diy: [ ${repo_diy} ]\nBRANCH: [ main ]"
 
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: (feeds.conf.default) Load custom feeds
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         run: |
           echo -e "Current working directory: $(pwd)"
-          if [[ -e "${FEEDS_DEF}" && ! "${FEEDS_DEF}" -ef "${PATH_REPO}/feeds.conf.default" ]]; then
-            echo -e "FEEDS_DEF: ${FEEDS_DEF}"
-            cp -f ${FEEDS_DEF} ${PATH_REPO}/feeds.conf.default
+          if [[ -e "${diy_feeds}" && ! "${diy_feeds}" -ef "${path_openwrt}/feeds.conf.default" ]]; then
+            echo -e "diy_feeds: ${diy_feeds}"
+            cp -f ${diy_feeds} ${path_openwrt}/feeds.conf.default
           fi
 
       - name: (DIY_P1.sh) after load feeds, before update feeds
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         env:
-          SCRIPT_FILE: ${{ env.DIY_P1_SH }}
+          SCRIPT_FILE: ${{ env.diy_p1_sh }}
         run: |
           echo -e "Current working directory: $(pwd)"
           if [[ -e "${SCRIPT_FILE}" ]]; then
@@ -342,7 +334,7 @@ jobs:
 
       - name: Update feeds
         id: update
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         run: |
           echo -e "Current working directory: $(pwd)"
           cat ./feeds.conf.default
@@ -351,7 +343,7 @@ jobs:
 
       - name: Install feeds
         id: install
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         if: ${{ steps.update.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -360,31 +352,31 @@ jobs:
 
       - name: (/files) Load custom files
         id: files
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
           mkdir -p ./files/etc/config
-          if [[ -e "${FILES}" ]]; then
-              cp -rf ${FILES}/* ./files/
+          if [[ -e "${diy_files}" ]]; then
+              cp -rf ${diy_files}/* ./files/
           fi
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: (.config) Load custom configuration
         id: config
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          if [[ -e "${CONFIG_FILE}" && ! "${CONFIG_FILE}" -ef "${PATH_REPO}/.config" ]]; then
-            echo -e "CONFIG_FILE: ${CONFIG_FILE}"
-            cp -f ${CONFIG_FILE} ${PATH_REPO}/.config
+          if [[ -e "${diy_config}" && ! "${diy_config}" -ef "${path_openwrt}/.config" ]]; then
+            echo -e "diy_config: ${diy_config}"
+            cp -f ${diy_config} ${path_openwrt}/.config
           else
-            echo "Cannot find the custom CONFIG_FILE"
+            echo "Cannot find the custom diy_config"
           fi
 
-          if [[ ! -e "${PATH_REPO}/.config" ]]; then
+          if [[ ! -e "${path_openwrt}/.config" ]]; then
             echo ".config file not found, generating default config..."
             make defconfig
           fi
@@ -393,9 +385,9 @@ jobs:
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: (DIY_P2.sh) after install feeds, before download package
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         env:
-          SCRIPT_FILE: ${{ env.DIY_P2_SH }}
+          SCRIPT_FILE: ${{ env.diy_p2_sh }}
         run: |
           echo -e "Current working directory: $(pwd)"
           if [[ -e "${SCRIPT_FILE}" ]]; then
@@ -407,7 +399,7 @@ jobs:
 
       - name: Download package
         id: package
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         env:
           FORCE_UNSAFE_CONFIGURE: 1
         if: ${{ steps.install.outputs.status }} == 'success' && !cancelled()
@@ -424,7 +416,7 @@ jobs:
 
       - name: Compile the OpenWrt
         id: compile
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         env:
           FORCE_UNSAFE_CONFIGURE: 1
         if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
@@ -438,18 +430,18 @@ jobs:
         id: copy
         working-directory: /
         env:
-          PATH_TARGET: ${{ env.PATH_REPO }}/bin/targets/*/*/*
+          PATH_TARGET: ${{ env.path_openwrt }}/bin/targets/*/*/*
         if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
-          [[ -e "${PATH_OUTPUT}" ]] || mkdir -p ${PATH_OUTPUT}
-          cp -rf ${PATH_TARGET} ${PATH_OUTPUT}/
-          cp -f ${PATH_REPO}/.config ${PATH_OUTPUT}/config
+          [[ -e "${path_output}" ]] || mkdir -p ${path_output}
+          cp -rf ${PATH_TARGET} ${path_output}/
+          cp -f ${path_openwrt}/.config ${path_output}/config
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Setup output
         id: output
-        working-directory: ${{ env.PATH_OUTPUT }}
+        working-directory: ${{ env.path_output }}
         env:
           file_config: ./config
         if: ${{ steps.copy.outputs.status }} == 'success' && !cancelled()
@@ -471,85 +463,85 @@ jobs:
 
       - name: "[release.md] Record release.md"
         id: record
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         env:
-          # config_branch: ${{ inputs.device_branch }}
+          # device_branch: ${{ inputs.device_branch }}
           builder_name: ${{ inputs.builder_name }}
           file_config: ./config
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          touch ${RELEASE_MD}
+          touch ${release_md}
 
           # 记录Clone源码的分支和构建者
-          echo -e "# Build ${config_branch} - by ${builder_name}" >> ${RELEASE_MD}
-          echo -e "\n### Source Code" >> ${RELEASE_MD}
-          echo -e "\n- [${SYSTEM_BRANCH}](${SYSTEM_REPO})" >> ${RELEASE_MD}
+          echo -e "# Build ${device_branch} - by ${builder_name}" >> ${release_md}
+          echo -e "\n### Source Code" >> ${release_md}
+          echo -e "\n- [${repo_openwrt_branch}](${repo_openwrt})" >> ${release_md}
 
           # 记录DIY_P1.sh
-          SCRIPT_FILE=${{ env.DIY_P1_SH }}
+          SCRIPT_FILE=${{ env.diy_p1_sh }}
           # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
           code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
           # 折叠使用bash代码块 高亮代码
-          echo -e "\n### ${SCRIPT_FILE}" >> ${RELEASE_MD}
-          echo -e "\n<details>\n<summary>Bash</summary>" >> ${RELEASE_MD}
-          echo -e "\n```bash" >> ${RELEASE_MD}
-          echo "${code_script}" >> ${RELEASE_MD}
-          echo -e "```" >> ${RELEASE_MD}
-          echo -e "\n</details>" >> ${RELEASE_MD}
+          echo -e "\n### ${SCRIPT_FILE}" >> ${release_md}
+          echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
+          echo -e "\n```bash" >> ${release_md}
+          echo "${code_script}" >> ${release_md}
+          echo -e "```" >> ${release_md}
+          echo -e "\n</details>" >> ${release_md}
 
           # 记录feeds.conf.default
           # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
           code_feeds=$(grep '^[^#]' ./feeds.conf.default | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
           # 折叠使用bash代码块 高亮代码
-          echo -e "\n### feeds setting" >> ${RELEASE_MD}
-          echo -e "\n<details>\n<summary>feeds.conf.default</summary>" >> ${RELEASE_MD}
-          echo -e "\n```bash" >> ${RELEASE_MD}
-          echo "${code_feeds}" >> ${RELEASE_MD}
-          echo -e "```" >> ${RELEASE_MD}
-          echo -e "\n</details>" >> ${RELEASE_MD}
+          echo -e "\n### feeds setting" >> ${release_md}
+          echo -e "\n<details>\n<summary>feeds.conf.default</summary>" >> ${release_md}
+          echo -e "\n```bash" >> ${release_md}
+          echo "${code_feeds}" >> ${release_md}
+          echo -e "```" >> ${release_md}
+          echo -e "\n</details>" >> ${release_md}
 
           # 记录DIY_P2.sh
-          SCRIPT_FILE=${{ env.DIY_P2_SH }}
+          SCRIPT_FILE=${{ env.diy_p2_sh }}
           # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
           # code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
           # 折叠使用bash代码块 高亮代码
-          echo -e "\n### ${SCRIPT_FILE}" >> ${RELEASE_MD}
-          echo -e "\n<details>\n<summary>Bash</summary>" >> ${RELEASE_MD}
-          echo -e "\n```bash" >> ${RELEASE_MD}
-          grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g' >> ${RELEASE_MD}
-          echo -e "```" >> ${RELEASE_MD}
-          echo -e "\n</details>" >> ${RELEASE_MD}
+          echo -e "\n### ${SCRIPT_FILE}" >> ${release_md}
+          echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
+          echo -e "\n```bash" >> ${release_md}
+          grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g' >> ${release_md}
+          echo -e "```" >> ${release_md}
+          echo -e "\n</details>" >> ${release_md}
 
           # 记录.config配置
           if [[ -f ${file_config} ]]; then
             # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
             config=$(grep '^[^#]' ${file_config} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
             # 折叠使用makefile代码块 高亮config设置
-            echo -e "\n### config setting" >> ${RELEASE_MD}
-            echo -e "\n<details>\n<summary>config</summary>" >> ${RELEASE_MD}
-            echo -e "\n```makefile" >> ${RELEASE_MD}
-            echo "${config}" >> ${RELEASE_MD}
-            echo -e "```" >> ${RELEASE_MD}
-            echo -e "\n</details>" >> ${RELEASE_MD}
+            echo -e "\n### config setting" >> ${release_md}
+            echo -e "\n<details>\n<summary>config</summary>" >> ${release_md}
+            echo -e "\n```makefile" >> ${release_md}
+            echo "${config}" >> ${release_md}
+            echo -e "```" >> ${release_md}
+            echo -e "\n</details>" >> ${release_md}
           fi
 
           # 记录编译完成时间
-          echo -e "\n### Record Time" >> ${RELEASE_MD}
-          echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${RELEASE_MD}
+          echo -e "\n### Record Time" >> ${release_md}
+          echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
 
           # 切换到Output目录
-          # cd ${PATH_OUTPUT}
+          # cd ${path_output}
           # echo -e "Current working directory: $(pwd)"
 
           # 记录Output bin文件
-          echo -e "\n### Tested or NOT\n\n" >> ${RELEASE_MD}
-          for file in ${PATH_OUTPUT}/*.bin
+          echo -e "\n### Tested or NOT\n\n" >> ${release_md}
+          for file in ${path_output}/*.bin
           do
             if [[ ! -d "${file}" ]]
             then
-              echo -e "- [ ] ${file}" >> ${RELEASE_MD}
+              echo -e "- [ ] ${file}" >> ${release_md}
             fi
           done
 
@@ -557,30 +549,30 @@ jobs:
           # echo "TAGS_NAME=${TAGS_NAME}" >> ${GITHUB_OUTPUT}
           # Set output information 将构建标签和日期信息写入到 GITHUB_OUTPUT 环境变量指定的文件中
 
-          # echo -e "record=${RELEASE_MD}" >> ${GITHUB_OUTPUT}
+          # echo -e "record=${release_md}" >> ${GITHUB_OUTPUT}
 
       # https://github.com/ncipollo/release-action/blob/main/README.zh-Hans.md
       - name: Upload OpenWrt to Release
         uses: ncipollo/release-action@main
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         env:
-          # config_branch: ${{ inputs.device_branch }}
+          # device_branch: ${{ inputs.device_branch }}
           timestamp: ${{ steps.output.outputs.timestamp }}
-          # RELEASE_MD: ${{ steps.record.outputs.record }}
+          # release_md: ${{ steps.record.outputs.record }}
         with:
-          name: "${{ env.timestamp }} ${{ env.config_branch }}"
-          tag: "${{ env.config_branch }}"
-          artifacts: "${{ env.PATH_OUTPUT }}/*"
+          name: "${{ env.timestamp }} ${{ env.device_branch }}"
+          tag: "${{ env.device_branch }}"
+          artifacts: "${{ env.path_output }}/*"
           allowUpdates: true
           removeArtifacts: false
           replacesArtifacts: true
           token: "${{ secrets.GITHUB_TOKEN }}"
-          bodyFile: "${{ env.RELEASE_MD }}"
+          bodyFile: "${{ env.release_md }}"
           # body: ""
 
       - name: Clear workspace
         id: clearwork
-        working-directory: ${{ env.PATH_REPO }}
+        working-directory: ${{ env.path_openwrt }}
         run: |
           # rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
           rm -rf ./* 2>/dev/null
