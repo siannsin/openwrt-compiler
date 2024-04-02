@@ -45,7 +45,7 @@ jobs:
           repo_diy="https://github.com/$GITHUB_REPOSITORY"
           repo_diy_owner="$GITHUB_REPOSITORY_OWNER"
 
-          repo_target="https://github.com/openwrt/openwrt"
+          repo_target="https://github.com/hanwckf/bl-mt798x"
           repo_target_branch="master"
 
           echo "repo_diy=${repo_diy}" >> "$GITHUB_ENV"
