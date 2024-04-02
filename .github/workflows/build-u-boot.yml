@@ -279,23 +279,22 @@ jobs:
 
           git clone ${repo_target} ${path_openwrt} --single-branch --depth=1 --branch=${repo_target_branch} 
           echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
-          ls -al ${path_openwrt}
 
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Clone DIY
-        id: clonediy
-        working-directory: ${{ env.path_openwrt }}
-        if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
-        run: |
-          echo -e "Current working directory: $(pwd)"
+      # - name: Clone DIY
+      #   id: clonediy
+      #   working-directory: ${{ env.path_openwrt }}
+      #   if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
+      #   run: |
+      #     echo -e "Current working directory: $(pwd)"
 
-          git clone ${repo_diy} ${path_diy} --single-branch --depth=1 --branch=main
-          echo -e "repo_diy: [ ${repo_diy} ]\nBRANCH: [ main ]"
+      #     git clone ${repo_diy} ${path_diy} --single-branch --depth=1 --branch=main
+      #     echo -e "repo_diy: [ ${repo_diy} ]\nBRANCH: [ main ]"
 
-          df -hT ${PWD}
-          echo "status=success" >> ${GITHUB_OUTPUT}
+      #     df -hT ${PWD}
+      #     echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Compile U-Boot
         id: compile
@@ -303,6 +302,8 @@ jobs:
         if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
+          ls -al ./
+
           # echo -e "$(($(nproc) + 1)) thread compile"
           # make -j$(($(nproc) + 1)) V=s+
 
@@ -312,7 +313,7 @@ jobs:
           # eg: SOC=mt7986 BOARD=redmi_ax6000 MULTI_LAYOUT=1 ./build.sh
           # eg: SOC=mt7986 BOARD=jdcloud_re-cp-03 ./build.sh
           # Usage: SOC=[mt7981|mt7986] BOARD=<board name> MULTI_LAYOUT=[0|1] ./build.sh
-          SOC=mt7981 BOARD=${device_branch} MULTI_LAYOUT=1 ./build.sh
+          bash ./build.sh SOC=mt7981 BOARD=${device_branch} MULTI_LAYOUT=1
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
