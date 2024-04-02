@@ -7,23 +7,19 @@ on:
       openwrt_branch:
         description: "Select openwrt branch"
         required: true
-        default: "openwrt"
+        default: "u-boot"
         type: choice
         options:
-          - openwrt
-          - immortalwrt
-          - immortalwrt-mt798x
+          - u-boot
       device_branch:
         description: "Select device branch"
         required: true
-        default: "mt7981"
+        default: "ax3000t"
         type: choice
         options:
-          - mt7981
           - ax3000t
 
 env:
-  # repo_openwrt: https://git.openwrt.org/openwrt/openwrt.git
   TZ: America/New_York
   openwrt_branch: ${{ inputs.openwrt_branch }}
   device_branch: ${{ inputs.device_branch }}
@@ -45,25 +41,17 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          # ========== Set OpenWrt repo branch ==========
+          # ========== Set repo branch ==========
           repo_diy="https://github.com/$GITHUB_REPOSITORY"
           repo_diy_owner="$GITHUB_REPOSITORY_OWNER"
 
-          if [[ "${openwrt_branch}" == "openwrt" ]]; then
-              repo_openwrt="https://github.com/openwrt/openwrt"
-              repo_openwrt_branch="main"
-          elif [[ "${openwrt_branch}" == "immortalwrt" ]]; then
-              repo_openwrt="https://github.com/immortalwrt/immortalwrt"
-              repo_openwrt_branch="master"
-          elif [[ "${openwrt_branch}" == "immortalwrt-mt798x" ]]; then
-              repo_openwrt="https://github.com/hanwckf/immortalwrt-mt798x"
-              repo_openwrt_branch="openwrt-21.02"
-          fi
+          repo_target="https://github.com/openwrt/openwrt"
+          repo_target_branch="master"
 
           echo "repo_diy=${repo_diy}" >> "$GITHUB_ENV"
           echo "repo_diy_owner=${repo_diy_owner}" >> "$GITHUB_ENV"
-          echo "repo_openwrt=${repo_openwrt}" >> "$GITHUB_ENV"
-          echo "repo_openwrt_branch=${repo_openwrt_branch}" >> "$GITHUB_ENV"
+          echo "repo_target=${repo_target}" >> "$GITHUB_ENV"
+          echo "repo_target_branch=${repo_target_branch}" >> "$GITHUB_ENV"
 
           # ========== Build Path ==========
           dir_diy="DIY"
@@ -83,19 +71,19 @@ jobs:
           echo "path_diy_branch=${path_diy_branch}" >> "$GITHUB_ENV"
 
           # ========== DIY Files ==========
-          diy_config="${path_diy_branch}/${device_branch}.config"
-          diy_feeds="${path_diy_branch}/feeds.conf.default"
-          diy_p1_sh="${path_diy_branch}/diy-part1.sh"
-          diy_p2_sh="${path_diy_branch}/diy-part2.sh"
-          diy_files="${path_diy_branch}/files"
-          release_md="${path_diy_branch}/release.md"
+          # diy_config="${path_diy_branch}/${device_branch}.config"
+          # diy_feeds="${path_diy_branch}/feeds.conf.default"
+          # diy_p1_sh="${path_diy_branch}/diy-part1.sh"
+          # diy_p2_sh="${path_diy_branch}/diy-part2.sh"
+          # diy_files="${path_diy_branch}/files"
+          # release_md="${path_diy_branch}/release.md"
 
-          echo "diy_config=${diy_config}" >> "$GITHUB_ENV"
-          echo "diy_feeds=${diy_feeds}" >> "$GITHUB_ENV"
-          echo "diy_p1_sh=${diy_p1_sh}" >> "$GITHUB_ENV"
-          echo "diy_p2_sh=${diy_p2_sh}" >> "$GITHUB_ENV"
-          echo "diy_files=${diy_files}" >> "$GITHUB_ENV"
-          echo "release_md=${release_md}" >> "$GITHUB_ENV"
+          # echo "diy_config=${diy_config}" >> "$GITHUB_ENV"
+          # echo "diy_feeds=${diy_feeds}" >> "$GITHUB_ENV"
+          # echo "diy_p1_sh=${diy_p1_sh}" >> "$GITHUB_ENV"
+          # echo "diy_p2_sh=${diy_p2_sh}" >> "$GITHUB_ENV"
+          # echo "diy_files=${diy_files}" >> "$GITHUB_ENV"
+          # echo "release_md=${release_md}" >> "$GITHUB_ENV"
 
           # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -105,11 +93,11 @@ jobs:
         working-directory: /
         run: |
           echo -e "Current working directory: $(pwd)"
-          echo -e "# ========== OpenWrt Info =========="
+          echo -e "# ========== Repo Info =========="
           echo -e "repo_diy: ${repo_diy}"
           echo -e "repo_diy_owner: ${repo_diy_owner}"
-          echo -e "repo_openwrt: ${repo_openwrt}"
-          echo -e "repo_openwrt_branch: ${repo_openwrt_branch}"
+          echo -e "repo_target: ${repo_target}"
+          echo -e "repo_target_branch: ${repo_target_branch}"
           echo -e "# ========== Build Path =========="
           echo -e "# ---------- / ----------"
           echo -e "path_build: ${path_build}"
@@ -118,13 +106,13 @@ jobs:
           echo -e "path_output: ${path_output}"
           echo -e "path_diy: ${path_diy}"
           echo -e "path_diy_branch: ${path_diy_branch}"
-          echo -e "# ========== DIY Files =========="
-          echo -e "diy_config: ${diy_config}"
-          echo -e "diy_feeds: ${diy_feeds}"
-          echo -e "diy_p1_sh: ${diy_p1_sh}"
-          echo -e "diy_p2_sh: ${diy_p2_sh}"
-          echo -e "diy_files: ${diy_files}"
-          echo -e "release_md: ${release_md}"
+          # echo -e "# ========== DIY Files =========="
+          # echo -e "diy_config: ${diy_config}"
+          # echo -e "diy_feeds: ${diy_feeds}"
+          # echo -e "diy_p1_sh: ${diy_p1_sh}"
+          # echo -e "diy_p2_sh: ${diy_p2_sh}"
+          # echo -e "diy_files: ${diy_files}"
+          # echo -e "release_md: ${release_md}"
           # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
@@ -237,6 +225,8 @@ jobs:
           xxd \
           zlib1g-dev \
           libdb++-dev
+          # Prepare
+          sudo -E apt-get -y -qq install gcc-aarch64-linux-gnu build-essential flex bison libssl-dev
           # 删除所有不再需要的软件包及其配置文件, 清理 apt 的缓存
           sudo -E apt-get -qq -y autoremove --purge
           sudo -E apt-get -qq clean
@@ -287,8 +277,8 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          git clone ${repo_openwrt} ${path_openwrt} --single-branch --depth=1 --branch=${repo_openwrt_branch} 
-          echo -e "repo_openwrt: [ ${repo_openwrt} ]\nBRANCH: [ ${repo_openwrt_branch} ]"
+          git clone ${repo_target} ${path_openwrt} --single-branch --depth=1 --branch=${repo_target_branch} 
+          echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
 
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -306,139 +296,37 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: (feeds.conf.default) Load custom feeds
-        working-directory: ${{ env.path_openwrt }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          if [[ -e "${diy_feeds}" && ! "${diy_feeds}" -ef "${path_openwrt}/feeds.conf.default" ]]; then
-            echo -e "diy_feeds: ${diy_feeds}"
-            cp -f ${diy_feeds} ${path_openwrt}/feeds.conf.default
-          fi
-
-      - name: (DIY_P1.sh) after load feeds, before update feeds
-        working-directory: ${{ env.path_openwrt }}
-        env:
-          SCRIPT_FILE: ${{ env.diy_p1_sh }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          if [[ -e "${SCRIPT_FILE}" ]]; then
-            echo -e "SCRIPT_FILE: ${SCRIPT_FILE}"
-            chmod +x ${SCRIPT_FILE}
-            bash ${SCRIPT_FILE}
-            cat ${SCRIPT_FILE}
-          fi
-
-      - name: Update feeds
-        id: update
-        working-directory: ${{ env.path_openwrt }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          cat ./feeds.conf.default
-          ./scripts/feeds update -a
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: Install feeds
-        id: install
-        working-directory: ${{ env.path_openwrt }}
-        if: ${{ steps.update.outputs.status }} == 'success' && !cancelled()
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          ./scripts/feeds install -a
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: (/files) Load custom files
-        id: files
-        working-directory: ${{ env.path_openwrt }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          mkdir -p ./files/etc/config
-          if [[ -e "${diy_files}" ]]; then
-              cp -rf ${diy_files}/* ./files/
-          fi
-
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: (.config) Load custom configuration
-        id: config
-        working-directory: ${{ env.path_openwrt }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-
-          if [[ -e "${diy_config}" && ! "${diy_config}" -ef "${path_openwrt}/.config" ]]; then
-            echo -e "diy_config: ${diy_config}"
-            cp -f ${diy_config} ${path_openwrt}/.config
-          else
-            echo "Cannot find the custom diy_config"
-          fi
-
-          if [[ ! -e "${path_openwrt}/.config" ]]; then
-            echo ".config file not found, generating default config..."
-            make defconfig
-          fi
-
-          cat ./.config
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: (DIY_P2.sh) after install feeds, before download package
-        working-directory: ${{ env.path_openwrt }}
-        env:
-          SCRIPT_FILE: ${{ env.diy_p2_sh }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          if [[ -e "${SCRIPT_FILE}" ]]; then
-            echo -e "SCRIPT_FILE: ${SCRIPT_FILE}"
-            chmod +x ${SCRIPT_FILE}
-            bash ${SCRIPT_FILE}
-            cat ${SCRIPT_FILE}
-          fi
-
-      - name: (.config) Update
-        working-directory: ${{ env.path_openwrt }}
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          echo "make oldconfig: update .config file..."
-          make oldconfig
-          cat ./.config
-
-      - name: Download package
-        id: package
-        working-directory: ${{ env.path_openwrt }}
-        # env:
-        #   FORCE_UNSAFE_CONFIGURE: 1
-        if: ${{ steps.install.outputs.status }} == 'success' && !cancelled()
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          echo -e "make download: $(($(nproc) + 1)) thread"
-          make download -j$(($(nproc) + 1))
-          # find dl -size -1024c -exec ls -l {} \;
-          # find dl -size -1024c -exec rm -f {} \;
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: Compile the OpenWrt
+      - name: Compile U-Boot
         id: compile
         working-directory: ${{ env.path_openwrt }}
-        # env:
-        #   FORCE_UNSAFE_CONFIGURE: 1
-        if: ${{ steps.package.outputs.status }} == 'success' && !cancelled()
+        if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
-          echo -e "$(($(nproc) + 1)) thread compile"
-          make -j$(($(nproc) + 1)) V=s
+          # echo -e "$(($(nproc) + 1)) thread compile"
+          # make -j$(($(nproc) + 1)) V=s+
+
+          # eg: SOC=mt7981 BOARD=360t7 ./build.sh
+          # eg: SOC=mt7981 BOARD=wr30u MULTI_LAYOUT=1 ./build.sh
+          # eg: SOC=mt7981 BOARD=cmcc_rax3000m-emmc ./build.sh
+          # eg: SOC=mt7986 BOARD=redmi_ax6000 MULTI_LAYOUT=1 ./build.sh
+          # eg: SOC=mt7986 BOARD=jdcloud_re-cp-03 ./build.sh
+          # Usage: SOC=[mt7981|mt7986] BOARD=<board name> MULTI_LAYOUT=[0|1] ./build.sh
+          SOC=mt7981 BOARD=${device_branch} MULTI_LAYOUT=1 ./build.sh
+
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Copy to output
-        id: copy
-        working-directory: /
-        env:
-          PATH_TARGET: ${{ env.path_openwrt }}/bin/targets/*/*/*
-        if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
-        run: |
-          echo -e "Current working directory: $(pwd)"
-          [[ -e "${path_output}" ]] || mkdir -p ${path_output}
-          cp -rf ${PATH_TARGET} ${path_output}/
-          cp -f ${path_openwrt}/.config ${path_output}/config
-          echo "status=success" >> ${GITHUB_OUTPUT}
+      # - name: Copy to output
+      #   id: copy
+      #   working-directory: /
+      #   env:
+      #     PATH_TARGET: ${{ env.path_openwrt }}/output/*
+      #   if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
+      #   run: |
+      #     echo -e "Current working directory: $(pwd)"
+      #     [[ -e "${path_output}" ]] || mkdir -p ${path_output}
+      #     cp -rf ${PATH_TARGET} ${path_output}/
+      #     cp -f ${path_openwrt}/.config ${path_output}/config
+      #     echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Setup output
         id: output
@@ -472,68 +360,68 @@ jobs:
           # 记录Clone源码的分支和构建者
           echo -e "# Build ${device_branch} - by ${repo_diy_owner}" >> ${release_md}
           echo -e "\n### OpenWrt branch" >> ${release_md}
-          echo -e "\n- [${openwrt_branch};${repo_openwrt_branch}](${repo_openwrt}/tree/${repo_openwrt_branch})" >> ${release_md}
+          echo -e "\n- [${openwrt_branch};${repo_target_branch}](${repo_target}/tree/${repo_target_branch})" >> ${release_md}
 
           # 记录编译完成时间
           echo -e "\n### Build Time" >> ${release_md}
           echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
 
-          # 记录DIY_P1.sh
-          SCRIPT_FILE=${diy_p1_sh}
-          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-          # 折叠使用bash代码块 高亮代码
-          echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
-          echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
-          echo -e "\n```bash" >> ${release_md}
-          echo "${code_script}" >> ${release_md}
-          echo -e "```" >> ${release_md}
-          echo -e "\n</details>" >> ${release_md}
+          # # 记录DIY_P1.sh
+          # SCRIPT_FILE=${diy_p1_sh}
+          # # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
+          # code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          # # 折叠使用bash代码块 高亮代码
+          # echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
+          # echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
+          # echo -e "\n```bash" >> ${release_md}
+          # echo "${code_script}" >> ${release_md}
+          # echo -e "```" >> ${release_md}
+          # echo -e "\n</details>" >> ${release_md}
 
-          # 记录feeds.conf.default
-          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_feeds=$(grep '^[^#]' ${diy_feeds} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-          # 折叠使用bash代码块 高亮代码
-          echo -e "\n### $(basename "${diy_feeds}")" >> ${release_md}
-          echo -e "\n### feeds setting" >> ${release_md}
-          echo -e "\n<details>\n<summary>feeds.conf.default</summary>" >> ${release_md}
-          echo -e "\n```bash" >> ${release_md}
-          echo "${code_feeds}" >> ${release_md}
-          echo -e "```" >> ${release_md}
-          echo -e "\n</details>" >> ${release_md}
+          # # 记录feeds.conf.default
+          # # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
+          # code_feeds=$(grep '^[^#]' ${diy_feeds} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          # # 折叠使用bash代码块 高亮代码
+          # echo -e "\n### $(basename "${diy_feeds}")" >> ${release_md}
+          # echo -e "\n### feeds setting" >> ${release_md}
+          # echo -e "\n<details>\n<summary>feeds.conf.default</summary>" >> ${release_md}
+          # echo -e "\n```bash" >> ${release_md}
+          # echo "${code_feeds}" >> ${release_md}
+          # echo -e "```" >> ${release_md}
+          # echo -e "\n</details>" >> ${release_md}
 
-          # 记录DIY_P2.sh
-          SCRIPT_FILE=${diy_p2_sh}
-          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-          # 折叠使用bash代码块 高亮代码
-          echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
-          echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
-          echo -e "\n```bash" >> ${release_md}
-          echo "${code_script}" >> ${release_md}
-          echo -e "```" >> ${release_md}
-          echo -e "\n</details>" >> ${release_md}
+          # # 记录DIY_P2.sh
+          # SCRIPT_FILE=${diy_p2_sh}
+          # # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
+          # code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          # # 折叠使用bash代码块 高亮代码
+          # echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
+          # echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
+          # echo -e "\n```bash" >> ${release_md}
+          # echo "${code_script}" >> ${release_md}
+          # echo -e "```" >> ${release_md}
+          # echo -e "\n</details>" >> ${release_md}
 
-          # 记录.config配置
-          if [[ -f ${diy_config} ]]; then
-            # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-            config=$(grep '^[^#]' ${diy_config} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-            # 折叠使用makefile代码块 高亮config设置
-            echo -e "\n### config setting" >> ${release_md}
-            echo -e "\n<details>\n<summary>config</summary>" >> ${release_md}
-            echo -e "\n```makefile" >> ${release_md}
-            echo "${config}" >> ${release_md}
-            echo -e "```" >> ${release_md}
-            echo -e "\n</details>" >> ${release_md}
-          fi
+          # # 记录.config配置
+          # if [[ -f ${diy_config} ]]; then
+          #   # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
+          #   config=$(grep '^[^#]' ${diy_config} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          #   # 折叠使用makefile代码块 高亮config设置
+          #   echo -e "\n### config setting" >> ${release_md}
+          #   echo -e "\n<details>\n<summary>config</summary>" >> ${release_md}
+          #   echo -e "\n```makefile" >> ${release_md}
+          #   echo "${config}" >> ${release_md}
+          #   echo -e "```" >> ${release_md}
+          #   echo -e "\n</details>" >> ${release_md}
+          # fi
 
           # 切换到Output目录
           # cd ${path_output}
           # echo -e "Current working directory: $(pwd)"
 
-          # 记录Output bin文件
+          # 记录Output 文件
           echo -e "\n### Tested or NOT\n\n" >> ${release_md}
-          for file in ${path_output}/*.bin
+          for file in ${path_output}/*.ftp
           do
             if [[ ! -d "${file}" ]]
             then
@@ -552,7 +440,6 @@ jobs:
         uses: ncipollo/release-action@main
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         env:
-          # device_branch: ${{ inputs.device_branch }}
           timestamp: ${{ steps.output.outputs.timestamp }}
           # release_md: ${{ steps.record.outputs.record }}
         with:
