@@ -21,11 +21,6 @@ on:
         options:
           - mt7981
           - ax3000t
-      builder_name:
-        description: "[output] Set OpenWrt builder signature."
-        required: false
-        default: "grinch27"
-        type: string
 
 env:
   repo_openwrt: https://git.openwrt.org/openwrt/openwrt.git
@@ -44,7 +39,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set environment variable
+      - name: Set environment variable (${{ inputs.openwrt_branch }})
         id: var
         working-directory: /
         run: |
@@ -105,7 +100,7 @@ jobs:
           # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Check ${{ inputs.openwrt_branch }} environment variable
+      - name: Check environment variable
         id: checkenv
         working-directory: /
         run: |
@@ -448,8 +443,6 @@ jobs:
       - name: Setup output
         id: output
         working-directory: ${{ env.path_output }}
-        env:
-          file_config: ./config
         if: ${{ steps.copy.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -470,10 +463,6 @@ jobs:
       - name: "[release.md] Record release.md"
         id: record
         working-directory: ${{ env.path_openwrt }}
-        env:
-          # device_branch: ${{ inputs.device_branch }}
-          builder_name: ${{ inputs.builder_name }}
-          file_config: ./config
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -481,16 +470,20 @@ jobs:
           touch ${release_md}
 
           # 记录Clone源码的分支和构建者
-          echo -e "# Build ${device_branch} - by ${builder_name}" >> ${release_md}
-          echo -e "\n### Source Code" >> ${release_md}
-          echo -e "\n- [${repo_openwrt_branch}](${repo_openwrt})" >> ${release_md}
+          echo -e "# Build ${device_branch} - by ${repo_diy_owner}" >> ${release_md}
+          echo -e "\n### OpenWrt branch" >> ${release_md}
+          echo -e "\n- [${openwrt_branch};${repo_openwrt_branch}](${repo_openwrt}/tree/${repo_openwrt_branch})" >> ${release_md}
+
+          # 记录编译完成时间
+          echo -e "\n### Build Time" >> ${release_md}
+          echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
 
           # 记录DIY_P1.sh
-          SCRIPT_FILE=${{ env.diy_p1_sh }}
+          SCRIPT_FILE=${diy_p1_sh}
           # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
           code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
           # 折叠使用bash代码块 高亮代码
-          echo -e "\n### ${SCRIPT_FILE}" >> ${release_md}
+          echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
           echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
           echo -e "\n```bash" >> ${release_md}
           echo "${code_script}" >> ${release_md}
@@ -499,8 +492,9 @@ jobs:
 
           # 记录feeds.conf.default
           # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_feeds=$(grep '^[^#]' ./feeds.conf.default | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          code_feeds=$(grep '^[^#]' ${diy_feeds} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
           # 折叠使用bash代码块 高亮代码
+          echo -e "\n### $(basename "${diy_feeds}")" >> ${release_md}
           echo -e "\n### feeds setting" >> ${release_md}
           echo -e "\n<details>\n<summary>feeds.conf.default</summary>" >> ${release_md}
           echo -e "\n```bash" >> ${release_md}
@@ -509,21 +503,21 @@ jobs:
           echo -e "\n</details>" >> ${release_md}
 
           # 记录DIY_P2.sh
-          SCRIPT_FILE=${{ env.diy_p2_sh }}
+          SCRIPT_FILE=${diy_p2_sh}
           # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          # code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
           # 折叠使用bash代码块 高亮代码
-          echo -e "\n### ${SCRIPT_FILE}" >> ${release_md}
+          echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
           echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
           echo -e "\n```bash" >> ${release_md}
-          grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g' >> ${release_md}
+          echo "${code_script}" >> ${release_md}
           echo -e "```" >> ${release_md}
           echo -e "\n</details>" >> ${release_md}
 
           # 记录.config配置
-          if [[ -f ${file_config} ]]; then
+          if [[ -f ${diy_config} ]]; then
             # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-            config=$(grep '^[^#]' ${file_config} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+            config=$(grep '^[^#]' ${diy_config} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
             # 折叠使用makefile代码块 高亮config设置
             echo -e "\n### config setting" >> ${release_md}
             echo -e "\n<details>\n<summary>config</summary>" >> ${release_md}
@@ -532,10 +526,6 @@ jobs:
             echo -e "```" >> ${release_md}
             echo -e "\n</details>" >> ${release_md}
           fi
-
-          # 记录编译完成时间
-          echo -e "\n### Record Time" >> ${release_md}
-          echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
 
           # 切换到Output目录
           # cd ${path_output}
@@ -547,7 +537,7 @@ jobs:
           do
             if [[ ! -d "${file}" ]]
             then
-              echo -e "- [ ] ${file}" >> ${release_md}
+              echo -e "- [ ] $(basename "${file}")" >> ${release_md}
             fi
           done
 
