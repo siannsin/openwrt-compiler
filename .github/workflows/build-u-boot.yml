@@ -279,6 +279,7 @@ jobs:
 
           git clone ${repo_target} ${path_openwrt} --single-branch --depth=1 --branch=${repo_target_branch} 
           echo -e "repo_target: [ ${repo_target} ]\nBRANCH: [ ${repo_target_branch} ]"
+          ls -al ${path_openwrt}
 
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
