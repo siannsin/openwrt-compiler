@@ -313,7 +313,7 @@ jobs:
           # eg: SOC=mt7986 BOARD=redmi_ax6000 MULTI_LAYOUT=1 ./build.sh
           # eg: SOC=mt7986 BOARD=jdcloud_re-cp-03 ./build.sh
           # Usage: SOC=[mt7981|mt7986] BOARD=<board name> MULTI_LAYOUT=[0|1] ./build.sh
-          bash ./build.sh SOC=mt7981 BOARD=${device_branch} MULTI_LAYOUT=1
+          SOC=mt7981 BOARD=${device_branch} MULTI_LAYOUT=1 ./build.sh 
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
