@@ -299,6 +299,8 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
+          mkdir -p ${path_output}
+
           # BOARD SOC
           declare -A BOARD_PARAMS
           BOARD_PARAMS=(
