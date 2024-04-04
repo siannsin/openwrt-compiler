@@ -71,6 +71,7 @@ jobs:
           echo "path_build=${path_build}" >> "$GITHUB_ENV"
           echo "path_openwrt=${path_openwrt}" >> "$GITHUB_ENV"
           echo "path_output=${path_output}" >> "$GITHUB_ENV"
+          echo "path_backup=${path_backup}" >> "$GITHUB_ENV"
           echo "path_diy=${path_diy}" >> "$GITHUB_ENV"
           echo "path_diy_branch=${path_diy_branch}" >> "$GITHUB_ENV"
 
