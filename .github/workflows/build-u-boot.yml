@@ -284,7 +284,8 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          mkdir ${path_backup}
+          echo "Backup path: ${path_backup}"
+          mkdir -p ${path_backup}
           cp -rf ${path_openwrt} ${path_backup}
           ls -al ${path_backup}
 
@@ -328,7 +329,7 @@ jobs:
           for BOARD in "${BOARDS[@]}"; do
             # 获取备份target项目
             cd ${path_build}
-            rm -rf ${path_openwrt} && mkdir ${path_openwrt}
+            rm -rf ${path_openwrt} && mkdir -p ${path_openwrt}
             cp -rf ${path_backup} ${path_openwrt}
             # 切换到编译目录
             cd ${path_openwrt}
