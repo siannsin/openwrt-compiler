@@ -23,7 +23,6 @@ env:
   TZ: America/New_York
   openwrt_branch: ${{ inputs.openwrt_branch }}
   device_branch: ${{ inputs.device_branch }}
-  # Path 使用绝对路径 DIR 使用文件夹名称
 
 jobs:
   build:
@@ -50,17 +49,21 @@ jobs:
 
           echo "repo_diy=${repo_diy}" >> "$GITHUB_ENV"
           echo "repo_diy_owner=${repo_diy_owner}" >> "$GITHUB_ENV"
+
           echo "repo_target=${repo_target}" >> "$GITHUB_ENV"
           echo "repo_target_branch=${repo_target_branch}" >> "$GITHUB_ENV"
 
           # ========== Build Path ==========
-          dir_diy="DIY"
+          dir_build="builder"
           dir_output="output"
+          dir_backup="backup"
+          dir_diy="DIY"
           # ---------- / ----------
-          path_build="/builder"
+          path_build="/${dir_build}"
           path_openwrt="${path_build}/${openwrt_branch}"
-          # ---------- path_openwrt/ ----------
-          path_output="${path_openwrt}/${dir_output}"
+          path_output="${path_build}/${dir_output}"
+          path_backup="${path_build}/${dir_backup}"
+
           path_diy="${path_openwrt}/${dir_diy}"
           path_diy_branch="${path_diy}/${openwrt_branch}"
 
@@ -99,20 +102,12 @@ jobs:
           echo -e "repo_target: ${repo_target}"
           echo -e "repo_target_branch: ${repo_target_branch}"
           echo -e "# ========== Build Path =========="
-          echo -e "# ---------- / ----------"
           echo -e "path_build: ${path_build}"
-          echo -e "# ---------- path_openwrt/ ----------"
           echo -e "path_openwrt: ${path_openwrt}"
           echo -e "path_output: ${path_output}"
+          echo -e "path_backup: ${path_backup}"
           echo -e "path_diy: ${path_diy}"
           echo -e "path_diy_branch: ${path_diy_branch}"
-          # echo -e "# ========== DIY Files =========="
-          # echo -e "diy_config: ${diy_config}"
-          # echo -e "diy_feeds: ${diy_feeds}"
-          # echo -e "diy_p1_sh: ${diy_p1_sh}"
-          # echo -e "diy_p2_sh: ${diy_p2_sh}"
-          # echo -e "diy_files: ${diy_files}"
-          # echo -e "release_md: ${release_md}"
           # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
@@ -147,8 +142,6 @@ jobs:
           # 删除指定的软件包及其配置文件。如果删除失败，则忽略错误
           sudo -E apt-get -y -qq purge azure-cli* docker* ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
           # 下载并安装指定 URL 中列出的软件包 https://is.gd/depend_ubuntu2204_openwrt
-          # sudo -E apt-get -y -qq install $(curl -fsSL https://raw.githubusercontent.com/P3TERX/openwrt-list/master/depends-ubuntu-2004)
-          # sudo apt-get install -y libgdbm-dev libsqlite3-dev tk-dev libbz2-dev
           sudo -E apt-get -y install \
           ack \
           antlr3 \
@@ -225,7 +218,7 @@ jobs:
           xxd \
           zlib1g-dev \
           libdb++-dev
-          # Prepare
+          # arm-gcc工具链
           sudo -E apt-get -y -qq install gcc-aarch64-linux-gnu build-essential flex bison libssl-dev
           # 删除所有不再需要的软件包及其配置文件, 清理 apt 的缓存
           sudo -E apt-get -qq -y autoremove --purge
@@ -270,7 +263,7 @@ jobs:
           df -Th
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Clone System
+      - name: Clone Target Repository
         id: clonesys
         working-directory: ${{ env.path_build }}
         if: ${{ steps.disk.outputs.status }} == 'success' && !cancelled()
@@ -283,7 +276,19 @@ jobs:
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Compile U-Boot
+      - name: Backup Target Repository
+        id: backup
+        working-directory: ${{ env.path_build }}
+        if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          cp -rf ${path_openwrt} ${path_backup}
+          ls -al ${path_backup}
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Compile U-Boot Cycle
         id: compile
         working-directory: ${{ env.path_openwrt }}
         if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
@@ -291,8 +296,40 @@ jobs:
           echo -e "Current working directory: $(pwd)"
           ls -al ./
 
-          # echo -e "$(($(nproc) + 1)) thread compile"
-          # make -j$(($(nproc) + 1)) V=s+
+          arg_SOC="mt7981"
+          arg_BOARD="ax3000t"
+          arg_MULTI_LAYOUT="1"
+          arg_FIXED_MTDPARTS="1"
+
+          # BOARD名称
+          # 360t7
+          # livinet_zr-3020
+          # cetron_ct3003
+          # jcg_q30
+          # konka_komi-a31
+          # wr30u
+          # imou_lc-hx3001
+          # clt_r30b1
+          # abt_asr3000
+          # cmcc_a10
+          # cmcc_rax3000m
+          # cmcc_rax3000m-emmc
+          # h3c_magic-nx30-pro
+          # ax3000t
+          # redmi_ax6000
+          # tplink_tl-xdr608x
+
+          SOC="mt7981"
+          MULTI_LAYOUT="1"
+
+          # 所有的 BOARD 名称
+          BOARDS=("360t7" "livinet_zr-3020" "cetron_ct3003" "jcg_q30" "konka_komi-a31" "wr30u" "imou_lc-hx3001" "clt_r30b1" "abt_asr3000" "cmcc_a10" "cmcc_rax3000m" "cmcc_rax3000m-emmc" "h3c_magic-nx30-pro" "ax3000t" "redmi_ax6000" "tplink_tl-xdr608x")
+
+          # 遍历所有的 BOARD 名称
+          for BOARD in "${BOARDS[@]}"; do
+            # 为每个 BOARD 生成 U-Boot
+            SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} ./build.sh
+          done
 
           # eg: SOC=mt7981 BOARD=360t7 ./build.sh
           # eg: SOC=mt7981 BOARD=wr30u MULTI_LAYOUT=1 ./build.sh
@@ -300,7 +337,8 @@ jobs:
           # eg: SOC=mt7986 BOARD=redmi_ax6000 MULTI_LAYOUT=1 ./build.sh
           # eg: SOC=mt7986 BOARD=jdcloud_re-cp-03 ./build.sh
           # Usage: SOC=[mt7981|mt7986] BOARD=<board name> MULTI_LAYOUT=[0|1] ./build.sh
-          SOC=mt7981 BOARD=${device_branch} MULTI_LAYOUT=1 ./build.sh
+
+          # SOC=mt7981 BOARD=${device_branch} MULTI_LAYOUT=1 ./build.sh
 
           echo -e "========== Build Finished =========="
           ls -al ./
