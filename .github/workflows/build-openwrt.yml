@@ -50,7 +50,7 @@ jobs:
           repo_diy_owner="$GITHUB_REPOSITORY_OWNER"
 
           if [[ "${openwrt_branch}" == "openwrt" ]]; then
-              repo_openwrt="https://github.com/openwrt/openwrt"
+              repo_openwrt="https://git.openwrt.org/openwrt/openwrt.git"
               repo_openwrt_branch="main"
           elif [[ "${openwrt_branch}" == "immortalwrt" ]]; then
               repo_openwrt="https://github.com/immortalwrt/immortalwrt"
