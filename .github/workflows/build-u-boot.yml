@@ -284,6 +284,7 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
+          mkdir ${path_backup}
           cp -rf ${path_openwrt} ${path_backup}
           ls -al ${path_backup}
 
@@ -327,12 +328,13 @@ jobs:
           for BOARD in "${BOARDS[@]}"; do
             # 获取备份target项目
             cd ${path_build}
-            rm -rf ${path_openwrt}
+            rm -rf ${path_openwrt} && mkdir ${path_openwrt}
             cp -rf ${path_backup} ${path_openwrt}
             # 切换到编译目录
             cd ${path_openwrt}
             echo -e "Current working directory: $(pwd)"
             # 为每个 BOARD 生成 U-Boot
+            echo -e "---------- Compile U-Boot of ${BOARD} : MULTI_LAYOUT=${arg_MULTI_LAYOUT} ----------"
             SOC=${arg_SOC} BOARD=${BOARD} MULTI_LAYOUT=${arg_MULTI_LAYOUT} ./build.sh
             # 将生成结果复制到Output
             cp -rf ./output/* ${path_output}
