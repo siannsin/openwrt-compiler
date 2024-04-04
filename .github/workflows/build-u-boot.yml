@@ -72,6 +72,7 @@ jobs:
           echo "path_openwrt=${path_openwrt}" >> "$GITHUB_ENV"
           echo "path_output=${path_output}" >> "$GITHUB_ENV"
           echo "path_backup=${path_backup}" >> "$GITHUB_ENV"
+
           echo "path_diy=${path_diy}" >> "$GITHUB_ENV"
           echo "path_diy_branch=${path_diy_branch}" >> "$GITHUB_ENV"
 
@@ -294,11 +295,9 @@ jobs:
 
       - name: Compile U-Boot Cycle
         id: compile
-        working-directory: ${{ env.path_build }}
         if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
-          ls -al ./
 
           arg_SOC="mt7981"
           arg_BOARD="ax3000t"
