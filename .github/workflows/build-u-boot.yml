@@ -330,7 +330,7 @@ jobs:
             # 获取备份target项目
             cd ${path_build}
             rm -rf ${path_openwrt}
-            cp -rf ${path_backup} ${path_build}
+            cp -rf ${path_backup}/${openwrt_branch} ${path_build}
             # 切换到编译目录
             cd ${path_openwrt}
             echo -e "Current working directory: $(pwd)"
