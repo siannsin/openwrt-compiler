@@ -14,9 +14,10 @@ on:
       device_branch:
         description: "Select device branch"
         required: true
-        default: "ax3000t"
+        default: "all"
         type: choice
         options:
+          - all
           - ax3000t
 
 env:
@@ -290,7 +291,7 @@ jobs:
 
       - name: Compile U-Boot Cycle
         id: compile
-        working-directory: ${{ env.path_openwrt }}
+        working-directory: ${{ env.path_build }}
         if: ${{ steps.clonesys.outputs.status }} == 'success' && !cancelled()
         run: |
           echo -e "Current working directory: $(pwd)"
@@ -319,16 +320,22 @@ jobs:
           # redmi_ax6000
           # tplink_tl-xdr608x
 
-          SOC="mt7981"
-          MULTI_LAYOUT="1"
-
           # 所有的 BOARD 名称
           BOARDS=("360t7" "livinet_zr-3020" "cetron_ct3003" "jcg_q30" "konka_komi-a31" "wr30u" "imou_lc-hx3001" "clt_r30b1" "abt_asr3000" "cmcc_a10" "cmcc_rax3000m" "cmcc_rax3000m-emmc" "h3c_magic-nx30-pro" "ax3000t" "redmi_ax6000" "tplink_tl-xdr608x")
 
           # 遍历所有的 BOARD 名称
           for BOARD in "${BOARDS[@]}"; do
+            # 获取备份target项目
+            cd ${path_build}
+            rm -rf ${path_openwrt}
+            cp -rf ${path_backup} ${path_openwrt}
+            # 切换到编译目录
+            cd ${path_openwrt}
+            echo -e "Current working directory: $(pwd)"
             # 为每个 BOARD 生成 U-Boot
-            SOC=${SOC} BOARD=${BOARD} MULTI_LAYOUT=${MULTI_LAYOUT} ./build.sh
+            SOC=${arg_SOC} BOARD=${BOARD} MULTI_LAYOUT=${arg_MULTI_LAYOUT} ./build.sh
+            # 将生成结果复制到Output
+            cp -rf ./output/* ${path_output}
           done
 
           # eg: SOC=mt7981 BOARD=360t7 ./build.sh
@@ -341,22 +348,7 @@ jobs:
           # SOC=mt7981 BOARD=${device_branch} MULTI_LAYOUT=1 ./build.sh
 
           echo -e "========== Build Finished =========="
-          ls -al ./
-
           echo "status=success" >> ${GITHUB_OUTPUT}
-
-      # - name: Copy to output
-      #   id: copy
-      #   working-directory: /
-      #   env:
-      #     PATH_TARGET: ${{ env.path_openwrt }}/output/*
-      #   if: ${{ steps.compile.outputs.status }} == 'success' && !cancelled()
-      #   run: |
-      #     echo -e "Current working directory: $(pwd)"
-      #     [[ -e "${path_output}" ]] || mkdir -p ${path_output}
-      #     cp -rf ${PATH_TARGET} ${path_output}/
-      #     cp -f ${path_openwrt}/.config ${path_output}/config
-      #     echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Setup output
         id: output
@@ -368,105 +360,9 @@ jobs:
           rm -rf packages
           ls -al ./
 
-          # for file in *.bin
-          # do
-          #   if [[ ! -d "${file}" ]]
-          #   then
-          #     sha256sum "${file}" > "${file}.sha"
-          #   fi
-          # done
-
           echo -e "timestamp=$(date +"%y%mw%V")" >> ${GITHUB_OUTPUT}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      # - name: "[release.md] Record release.md"
-      #   id: record
-      #   working-directory: ${{ env.path_openwrt }}
-      #   if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
-      #   run: |
-      #     echo -e "Current working directory: $(pwd)"
-
-      #     touch ${release_md}
-
-      #     # 记录Clone源码的分支和构建者
-      #     echo -e "# Build ${device_branch} - by ${repo_diy_owner}" >> ${release_md}
-      #     echo -e "\n### OpenWrt branch" >> ${release_md}
-      #     echo -e "\n- [${openwrt_branch};${repo_target_branch}](${repo_target}/tree/${repo_target_branch})" >> ${release_md}
-
-      #     # 记录编译完成时间
-      #     echo -e "\n### Build Time" >> ${release_md}
-      #     echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
-
-      #     # # 记录DIY_P1.sh
-      #     # SCRIPT_FILE=${diy_p1_sh}
-      #     # # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-      #     # code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-      #     # # 折叠使用bash代码块 高亮代码
-      #     # echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
-      #     # echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
-      #     # echo -e "\n```bash" >> ${release_md}
-      #     # echo "${code_script}" >> ${release_md}
-      #     # echo -e "```" >> ${release_md}
-      #     # echo -e "\n</details>" >> ${release_md}
-
-      #     # # 记录feeds.conf.default
-      #     # # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-      #     # code_feeds=$(grep '^[^#]' ${diy_feeds} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-      #     # # 折叠使用bash代码块 高亮代码
-      #     # echo -e "\n### $(basename "${diy_feeds}")" >> ${release_md}
-      #     # echo -e "\n### feeds setting" >> ${release_md}
-      #     # echo -e "\n<details>\n<summary>feeds.conf.default</summary>" >> ${release_md}
-      #     # echo -e "\n```bash" >> ${release_md}
-      #     # echo "${code_feeds}" >> ${release_md}
-      #     # echo -e "```" >> ${release_md}
-      #     # echo -e "\n</details>" >> ${release_md}
-
-      #     # # 记录DIY_P2.sh
-      #     # SCRIPT_FILE=${diy_p2_sh}
-      #     # # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-      #     # code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-      #     # # 折叠使用bash代码块 高亮代码
-      #     # echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
-      #     # echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
-      #     # echo -e "\n```bash" >> ${release_md}
-      #     # echo "${code_script}" >> ${release_md}
-      #     # echo -e "```" >> ${release_md}
-      #     # echo -e "\n</details>" >> ${release_md}
-
-      #     # # 记录.config配置
-      #     # if [[ -f ${diy_config} ]]; then
-      #     #   # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-      #     #   config=$(grep '^[^#]' ${diy_config} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-      #     #   # 折叠使用makefile代码块 高亮config设置
-      #     #   echo -e "\n### config setting" >> ${release_md}
-      #     #   echo -e "\n<details>\n<summary>config</summary>" >> ${release_md}
-      #     #   echo -e "\n```makefile" >> ${release_md}
-      #     #   echo "${config}" >> ${release_md}
-      #     #   echo -e "```" >> ${release_md}
-      #     #   echo -e "\n</details>" >> ${release_md}
-      #     # fi
-
-      #     # 切换到Output目录
-      #     # cd ${path_output}
-      #     # echo -e "Current working directory: $(pwd)"
-
-      #     # # 记录Output 文件
-      #     # echo -e "\n### Tested or NOT\n\n" >> ${release_md}
-      #     # for file in ${path_output}/*.ftp
-      #     # do
-      #     #   if [[ ! -d "${file}" ]]
-      #     #   then
-      #     #     echo -e "- [ ] $(basename "${file}")" >> ${release_md}
-      #     #   fi
-      #     # done
-
-      #     # 将仓库 URL 写入到 GITHUB_OUTPUT 环境变量指定的文件中
-      #     # echo "TAGS_NAME=${TAGS_NAME}" >> ${GITHUB_OUTPUT}
-      #     # Set output information 将构建标签和日期信息写入到 GITHUB_OUTPUT 环境变量指定的文件中
-
-      #     # echo -e "record=${release_md}" >> ${GITHUB_OUTPUT}
-
-      # https://github.com/ncipollo/release-action/blob/main/README.zh-Hans.md
       - name: Upload OpenWrt to Release
         uses: ncipollo/release-action@main
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
@@ -486,9 +382,9 @@ jobs:
 
       - name: Clear workspace
         id: clearwork
-        working-directory: ${{ env.path_openwrt }}
+        working-directory: ${{ env.path_build }}
         run: |
-          # rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
+          echo -e "Current working directory: $(pwd)"
           rm -rf ./* 2>/dev/null
           df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
