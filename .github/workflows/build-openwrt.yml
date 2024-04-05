@@ -10,9 +10,14 @@ on:
         default: "openwrt"
         type: choice
         options:
-          - openwrt
-          - immortalwrt
-          - immortalwrt-mt798x
+          - openwrt;main
+          - openwrt;openwrt-23.05
+          - openwrt;openwrt-22.03
+          - openwrt;openwrt-21.02
+          - immortalwrt;master
+          - immortalwrt;openwrt-23.05
+          - immortalwrt;openwrt-21.02
+          - immortalwrt-mt798x;openwrt-21.02
       device_branch:
         description: "Select device branch"
         required: true
@@ -20,7 +25,6 @@ on:
         type: choice
         options:
           - mt7981
-          - ax3000t
 
 env:
   # repo_openwrt: https://git.openwrt.org/openwrt/openwrt.git
@@ -49,27 +53,32 @@ jobs:
           repo_diy="https://github.com/$GITHUB_REPOSITORY"
           repo_diy_owner="$GITHUB_REPOSITORY_OWNER"
 
+          IFS=';' read -ra BRANCHES <<< "${{ github.event.inputs.openwrt_branch }}"
+          openwrt_branch=${BRANCHES[0]}
+          repo_openwrt_branch=${BRANCHES[1]}
           if [[ "${openwrt_branch}" == "openwrt" ]]; then
-              repo_openwrt="https://git.openwrt.org/openwrt/openwrt.git"
-              repo_openwrt_branch="main"
+            repo_openwrt="https://git.openwrt.org/openwrt/openwrt.git"
           elif [[ "${openwrt_branch}" == "immortalwrt" ]]; then
-              repo_openwrt="https://github.com/immortalwrt/immortalwrt"
-              repo_openwrt_branch="master"
+            repo_openwrt="https://github.com/immortalwrt/immortalwrt.git"
           elif [[ "${openwrt_branch}" == "immortalwrt-mt798x" ]]; then
-              repo_openwrt="https://github.com/hanwckf/immortalwrt-mt798x"
-              repo_openwrt_branch="openwrt-21.02"
+            repo_openwrt="https://github.com/hanwckf/immortalwrt-mt798x.git"
+          else
+            echo -e "Unknown openwrt_branch: ${openwrt_branch} - ${repo_openwrt_branch}"
+            exit 1
           fi
 
           echo "repo_diy=${repo_diy}" >> "$GITHUB_ENV"
           echo "repo_diy_owner=${repo_diy_owner}" >> "$GITHUB_ENV"
+
           echo "repo_openwrt=${repo_openwrt}" >> "$GITHUB_ENV"
           echo "repo_openwrt_branch=${repo_openwrt_branch}" >> "$GITHUB_ENV"
 
           # ========== Build Path ==========
+          dir_build="build"
           dir_diy="DIY"
           dir_output="output"
           # ---------- / ----------
-          path_build="/builder"
+          path_build="/${dir_build}"
           path_openwrt="${path_build}/${openwrt_branch}"
           # ---------- path_openwrt/ ----------
           path_output="${path_openwrt}/${dir_output}"
@@ -565,7 +574,7 @@ jobs:
 
       - name: Clear workspace
         id: clearwork
-        working-directory: ${{ env.path_openwrt }}
+        working-directory: ${{ env.path_build }}
         run: |
           # rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
           rm -rf ./* 2>/dev/null
