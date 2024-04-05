@@ -21,20 +21,12 @@ on:
         options:
           - mt7981
           - ax3000t
-      auto_config:
-        description: "Auto generating .config"
-        required: true
-        default: "true"
-        type: choice
-        options:
-          - "true"
-          - "false"
+
 env:
   # repo_openwrt: https://git.openwrt.org/openwrt/openwrt.git
   TZ: America/New_York
   openwrt_branch: ${{ inputs.openwrt_branch }}
   device_branch: ${{ inputs.device_branch }}
-  auto_config: ${{ inputs.auto_config }}
   # Path 使用绝对路径 DIR 使用文件夹名称
 
 jobs:
@@ -373,60 +365,14 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          if [[ "${auto_config}" == "false" && -e "${diy_config}" && ! "${diy_config}" -ef "${path_openwrt}/.config" ]]; then
+          if [[ -e "${diy_config}" && ! "${diy_config}" -ef "${path_openwrt}/.config" ]]; then
             echo -e "diy_config: ${diy_config}"
             cp -f ${diy_config} ${path_openwrt}/.config
-            yes "" | make oldconfig
           else
-            echo ".config file not found, generating default config..."
-            
-            echo -e "
-            # OpenWrt Configuration
-            CONFIG_MODULES=y
-            CONFIG_HAVE_DOT_CONFIG=y
-            CONFIG_HOST_OS_LINUX=y
-            CONFIG_DEFAULT_TARGET_mediatek_filogic=y
-            CONFIG_TARGET_mediatek=y
-            CONFIG_TARGET_mediatek_filogic=y
-            CONFIG_TARGET_MULTI_PROFILE=y
-            # Target Devices
-            CONFIG_TARGET_ALL_PROFILES=y
-            CONFIG_TARGET_PER_DEVICE_ROOTFS=y
-            # Network -> WirelessAPD
-            CONFIG_PACKAGE_wpad=n
-            CONFIG_PACKAGE_wpad-basic=n
-            CONFIG_PACKAGE_wpad-basic-mbedtls=n
-            CONFIG_PACKAGE_wpad-basic-openssl=n
-            CONFIG_PACKAGE_wpad-basic-wolfssl=n
-            CONFIG_PACKAGE_wpad-mbedtls=n
-            CONFIG_PACKAGE_wpad-mesh-mbedtls=n
-            CONFIG_PACKAGE_wpad-mesh-openssl=y
-            CONFIG_PACKAGE_wpad-mesh-wolfssl=n
-            CONFIG_PACKAGE_wpad-mini=n
-            CONFIG_PACKAGE_wpad-openssl=n
-            CONFIG_PACKAGE_wpad-wolfssl=n
-            # Base system
-            CONFIG_PACKAGE_dnsmasq=n
-            CONFIG_PACKAGE_dnsmasq-full=y
-            # Luci -> Collections
-            CONFIG_PACKAGE_luci-ssl-nginx=y
-            CONFIG_PACKAGE_luci-app-uhttpd=n
-            CONFIG_PACKAGE_uhttpd=n
-            # Luci -> Theme
-            CONFIG_PACKAGE_luci-theme-material=y
-            # Luci -> Modules -> Translations
-            CONFIG_LUCI_LANG_zh_Hans=y
-            # Base system -> Shell
-            CONFIG_PACKAGE_bash=y
-            # Network -> File Transfer
-            CONFIG_PACKAGE_curl=y
-            # Utilities -> Terminal
-            CONFIG_PACKAGE_lrzsz=y
-            " > ${path_openwrt}/.config
-
-            yes "" | make oldconfig
+            echo ".config file not found"
           fi
 
+          yes "" | make oldconfig
           cat ./.config
           echo "status=success" >> ${GITHUB_OUTPUT}
 
