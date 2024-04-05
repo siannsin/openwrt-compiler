@@ -56,11 +56,11 @@ jobs:
           openwrt_branch=${BRANCHES[0]}
           repo_openwrt_branch=${BRANCHES[1]}
           if [[ "${openwrt_branch}" == "openwrt" ]]; then
-            repo_openwrt="https://git.openwrt.org/openwrt/openwrt"
+            repo_openwrt="https://git.openwrt.org/openwrt/openwrt.git"
           elif [[ "${openwrt_branch}" == "immortalwrt" ]]; then
-            repo_openwrt="https://github.com/immortalwrt/immortalwrt"
+            repo_openwrt="https://github.com/immortalwrt/immortalwrt.git"
           elif [[ "${openwrt_branch}" == "immortalwrt-mt798x" ]]; then
-            repo_openwrt="https://github.com/hanwckf/immortalwrt-mt798x"
+            repo_openwrt="https://github.com/hanwckf/immortalwrt-mt798x.git"
           else
             echo -e "Unknown openwrt_branch: ${openwrt_branch} - ${repo_openwrt_branch}"
             exit 1
