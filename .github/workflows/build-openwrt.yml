@@ -21,12 +21,20 @@ on:
         options:
           - mt7981
           - ax3000t
-
+      auto_config:
+        description: "Auto generating .config"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 env:
   # repo_openwrt: https://git.openwrt.org/openwrt/openwrt.git
   TZ: America/New_York
   openwrt_branch: ${{ inputs.openwrt_branch }}
   device_branch: ${{ inputs.device_branch }}
+  auto_config: ${{ inputs.auto_config }}
   # Path 使用绝对路径 DIR 使用文件夹名称
 
 jobs:
@@ -318,14 +326,14 @@ jobs:
       - name: (DIY_P1.sh) after load feeds, before update feeds
         working-directory: ${{ env.path_openwrt }}
         env:
-          SCRIPT_FILE: ${{ env.diy_p1_sh }}
+          file_script: ${{ env.diy_p1_sh }}
         run: |
           echo -e "Current working directory: $(pwd)"
-          if [[ -e "${SCRIPT_FILE}" ]]; then
-            echo -e "SCRIPT_FILE: ${SCRIPT_FILE}"
-            chmod +x ${SCRIPT_FILE}
-            bash ${SCRIPT_FILE}
-            cat ${SCRIPT_FILE}
+          if [[ -e "${file_script}" ]]; then
+            echo -e "file_script: ${file_script}"
+            chmod +x ${file_script}
+            bash ${file_script}
+            cat ${file_script}
           fi
 
       - name: Update feeds
@@ -365,16 +373,58 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          if [[ -e "${diy_config}" && ! "${diy_config}" -ef "${path_openwrt}/.config" ]]; then
+          if [[ "${auto_config}" == "false" && -e "${diy_config}" && ! "${diy_config}" -ef "${path_openwrt}/.config" ]]; then
             echo -e "diy_config: ${diy_config}"
             cp -f ${diy_config} ${path_openwrt}/.config
+            yes "" | make oldconfig
           else
-            echo "Cannot find the custom diy_config"
-          fi
-
-          if [[ ! -e "${path_openwrt}/.config" ]]; then
             echo ".config file not found, generating default config..."
-            make defconfig
+            
+            echo -e "
+            # OpenWrt Configuration
+            CONFIG_MODULES=y
+            CONFIG_HAVE_DOT_CONFIG=y
+            CONFIG_HOST_OS_LINUX=y
+            CONFIG_DEFAULT_TARGET_mediatek_filogic=y
+            CONFIG_TARGET_mediatek=y
+            CONFIG_TARGET_mediatek_filogic=y
+            CONFIG_TARGET_MULTI_PROFILE=y
+            # Target Devices
+            CONFIG_TARGET_ALL_PROFILES=y
+            CONFIG_TARGET_PER_DEVICE_ROOTFS=y
+            # Network -> WirelessAPD
+            CONFIG_PACKAGE_wpad=n
+            CONFIG_PACKAGE_wpad-basic=n
+            CONFIG_PACKAGE_wpad-basic-mbedtls=n
+            CONFIG_PACKAGE_wpad-basic-openssl=n
+            CONFIG_PACKAGE_wpad-basic-wolfssl=n
+            CONFIG_PACKAGE_wpad-mbedtls=n
+            CONFIG_PACKAGE_wpad-mesh-mbedtls=n
+            CONFIG_PACKAGE_wpad-mesh-openssl=y
+            CONFIG_PACKAGE_wpad-mesh-wolfssl=n
+            CONFIG_PACKAGE_wpad-mini=n
+            CONFIG_PACKAGE_wpad-openssl=n
+            CONFIG_PACKAGE_wpad-wolfssl=n
+            # Base system
+            CONFIG_PACKAGE_dnsmasq=n
+            CONFIG_PACKAGE_dnsmasq-full=y
+            # Luci -> Collections
+            CONFIG_PACKAGE_luci-ssl-nginx=y
+            CONFIG_PACKAGE_luci-app-uhttpd=n
+            CONFIG_PACKAGE_uhttpd=n
+            # Luci -> Theme
+            CONFIG_PACKAGE_luci-theme-material=y
+            # Luci -> Modules -> Translations
+            CONFIG_LUCI_LANG_zh_Hans=y
+            # Base system -> Shell
+            CONFIG_PACKAGE_bash=y
+            # Network -> File Transfer
+            CONFIG_PACKAGE_curl=y
+            # Utilities -> Terminal
+            CONFIG_PACKAGE_lrzsz=y
+            " > ${path_openwrt}/.config
+
+            yes "" | make oldconfig
           fi
 
           cat ./.config
@@ -383,23 +433,24 @@ jobs:
       - name: (DIY_P2.sh) after install feeds, before download package
         working-directory: ${{ env.path_openwrt }}
         env:
-          SCRIPT_FILE: ${{ env.diy_p2_sh }}
+          file_script: ${{ env.diy_p2_sh }}
         run: |
           echo -e "Current working directory: $(pwd)"
-          if [[ -e "${SCRIPT_FILE}" ]]; then
-            echo -e "SCRIPT_FILE: ${SCRIPT_FILE}"
-            chmod +x ${SCRIPT_FILE}
-            bash ${SCRIPT_FILE}
-            cat ${SCRIPT_FILE}
+          if [[ -e "${file_script}" ]]; then
+            echo -e "file_script: ${file_script}"
+            chmod +x ${file_script}
+            bash ${file_script}
+            cat ${file_script}
           fi
 
-      - name: (.config) Update
+      - name: (.config) Update config
         working-directory: ${{ env.path_openwrt }}
         run: |
           echo -e "Current working directory: $(pwd)"
           echo "make oldconfig: update .config file..."
-          make oldconfig
+          yes "" | make oldconfig
           cat ./.config
+          echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Download package
         id: package
@@ -479,11 +530,11 @@ jobs:
           echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
 
           # 记录DIY_P1.sh
-          SCRIPT_FILE=${diy_p1_sh}
+          file_script=${diy_p1_sh}
           # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          code_script=$(grep '^[^#]' ${file_script} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
           # 折叠使用bash代码块 高亮代码
-          echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
+          echo -e "\n### $(basename "${file_script}")" >> ${release_md}
           echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
           echo -e "\n```bash" >> ${release_md}
           echo "${code_script}" >> ${release_md}
@@ -503,11 +554,11 @@ jobs:
           echo -e "\n</details>" >> ${release_md}
 
           # 记录DIY_P2.sh
-          SCRIPT_FILE=${diy_p2_sh}
+          file_script=${diy_p2_sh}
           # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_script=$(grep '^[^#]' ${SCRIPT_FILE} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
+          code_script=$(grep '^[^#]' ${file_script} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
           # 折叠使用bash代码块 高亮代码
-          echo -e "\n### $(basename "${SCRIPT_FILE}")" >> ${release_md}
+          echo -e "\n### $(basename "${file_script}")" >> ${release_md}
           echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
           echo -e "\n```bash" >> ${release_md}
           echo "${code_script}" >> ${release_md}
