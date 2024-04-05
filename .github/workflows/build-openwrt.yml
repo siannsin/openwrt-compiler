@@ -29,7 +29,6 @@ on:
 env:
   # repo_openwrt: https://git.openwrt.org/openwrt/openwrt.git
   TZ: America/New_York
-  openwrt_branch: ${{ inputs.openwrt_branch }}
   device_branch: ${{ inputs.device_branch }}
   # Path 使用绝对路径 DIR 使用文件夹名称
 
@@ -53,15 +52,15 @@ jobs:
           repo_diy="https://github.com/$GITHUB_REPOSITORY"
           repo_diy_owner="$GITHUB_REPOSITORY_OWNER"
 
-          IFS=';' read -ra BRANCHES <<< "${{ github.event.inputs.openwrt_branch }}"
+          IFS=';' read -ra BRANCHES <<< "${{ inputs.openwrt_branch }}"
           openwrt_branch=${BRANCHES[0]}
           repo_openwrt_branch=${BRANCHES[1]}
           if [[ "${openwrt_branch}" == "openwrt" ]]; then
-            repo_openwrt="https://git.openwrt.org/openwrt/openwrt.git"
+            repo_openwrt="https://git.openwrt.org/openwrt/openwrt"
           elif [[ "${openwrt_branch}" == "immortalwrt" ]]; then
-            repo_openwrt="https://github.com/immortalwrt/immortalwrt.git"
+            repo_openwrt="https://github.com/immortalwrt/immortalwrt"
           elif [[ "${openwrt_branch}" == "immortalwrt-mt798x" ]]; then
-            repo_openwrt="https://github.com/hanwckf/immortalwrt-mt798x.git"
+            repo_openwrt="https://github.com/hanwckf/immortalwrt-mt798x"
           else
             echo -e "Unknown openwrt_branch: ${openwrt_branch} - ${repo_openwrt_branch}"
             exit 1
@@ -70,6 +69,7 @@ jobs:
           echo "repo_diy=${repo_diy}" >> "$GITHUB_ENV"
           echo "repo_diy_owner=${repo_diy_owner}" >> "$GITHUB_ENV"
 
+          echo "openwrt_branch=${openwrt_branch}" >> "$GITHUB_ENV"
           echo "repo_openwrt=${repo_openwrt}" >> "$GITHUB_ENV"
           echo "repo_openwrt_branch=${repo_openwrt_branch}" >> "$GITHUB_ENV"
 
@@ -563,7 +563,7 @@ jobs:
           # release_md: ${{ steps.record.outputs.record }}
         with:
           name: "${{ env.openwrt_branch }}_${{ env.device_branch }}_${{ env.timestamp }}"
-          tag: "${{ env.openwrt_branch }}"
+          tag: "${{ env.openwrt_branch }};${{ env.repo_openwrt_branch }}"
           artifacts: "${{ env.path_output }}/*"
           allowUpdates: true
           removeArtifacts: false
