@@ -117,6 +117,7 @@ jobs:
           echo -e "# ========== OpenWrt Info =========="
           echo -e "repo_diy: ${repo_diy}"
           echo -e "repo_diy_owner: ${repo_diy_owner}"
+          echo -e "openwrt_branch: ${openwrt_branch}"
           echo -e "repo_openwrt: ${repo_openwrt}"
           echo -e "repo_openwrt_branch: ${repo_openwrt_branch}"
           echo -e "# ========== Build Path =========="
