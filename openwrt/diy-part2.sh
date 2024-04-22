@@ -12,6 +12,12 @@ echo "
 CONFIG_PACKAGE_luci-app-adguardhome=y
 " >> .config
 
+# https-dns-proxy
+echo "
+CONFIG_PACKAGE_luci-app-https-dns-proxy=y
+CONFIG_PACKAGE_https-dns-proxy=y
+" >> .config
+
 # udpxy
 echo "
 CONFIG_PACKAGE_luci-app-udpxy=y
