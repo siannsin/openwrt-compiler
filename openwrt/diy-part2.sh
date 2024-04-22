@@ -17,3 +17,13 @@ echo "
 CONFIG_PACKAGE_luci-app-udpxy=y
 CONFIG_PACKAGE_udpxy=y
 " >> .config
+
+# squid
+echo "
+CONFIG_PACKAGE_luci-app-squid=y
+CONFIG_PACKAGE_squid=y
+" >> .config
+
+# ---------- sync config ----------
+make oldconfig
+cat ./.config
