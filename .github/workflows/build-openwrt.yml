@@ -2,14 +2,14 @@ name: Build OpenWrt
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 0 * * *"
   repository_dispatch:
   workflow_dispatch:
     inputs:
       openwrt_branch:
         description: "Select openwrt branch"
         required: true
-        default: "openwrt"
+        default: "openwrt;main"
         type: choice
         options:
           - openwrt;main
@@ -59,6 +59,7 @@ jobs:
           IFS=';' read -ra BRANCHES <<< "${{ env.openwrt_branch }}"
           openwrt_branch=${BRANCHES[0]}
           repo_openwrt_branch=${BRANCHES[1]}
+
           if [[ "${openwrt_branch}" == "openwrt" ]]; then
             repo_openwrt="https://git.openwrt.org/openwrt/openwrt.git"
           elif [[ "${openwrt_branch}" == "immortalwrt" ]]; then
