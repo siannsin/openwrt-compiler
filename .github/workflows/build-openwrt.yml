@@ -1,8 +1,8 @@
 name: Build OpenWrt
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
+  # schedule:
+  #   - cron: "0 0 * * *"
   repository_dispatch:
   workflow_dispatch:
     inputs:
@@ -29,7 +29,7 @@ on:
           - mt7981
 
 env:
-  TZ: America/New_York
+  TZ: UTC
   DEFAULT_OPENWRT_BRANCH: "openwrt;main"
   DEFAULT_DEVICE_BRANCH: "mt7981"
   # typeOfTesting: ${{ github.event_name == 'schedule' && 'stage-test-local-All' }}
