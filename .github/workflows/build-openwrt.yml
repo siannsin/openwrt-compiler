@@ -459,7 +459,9 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
-          rm -rf packages
+          # handle Dir packages
+          ls -R ./packages
+          rm -rf ./packages
 
           # for file in *.bin
           # do
