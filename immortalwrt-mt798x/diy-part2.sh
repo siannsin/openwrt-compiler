@@ -1,12 +1,5 @@
 #!/bin/bash
 
-# Add luci-app-adguardhome
-rm -rf package/luci-app-adguardhome
-git clone https://github.com/rufengsuixing/luci-app-adguardhome.git package/luci-app-adguardhome
-echo "
-CONFIG_PACKAGE_luci-app-adguardhome=y
-" >> .config
-
 # ----- uninstall -----
 # uhttpd
 echo "
@@ -35,17 +28,6 @@ CONFIG_SAMBA4_SERVER_AVAHI=n
 CONFIG_SAMBA4_SERVER_VFS=n
 " >> .config
 
-# Shadowsocks
-echo "
-CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_NONE_Client=n
-CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_NONE_Server=n
-" >> .config
-
-# V2RAY
-echo "
-CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_NONE_V2RAY=n
-" >> .config
-
 # usb-printer
 echo "
 CONFIG_MODULE_DEFAULT_luci-app-usb-printer=n
@@ -54,8 +36,6 @@ CONFIG_PACKAGE_kmod-usb-printer=n
 CONFIG_PACKAGE_luci-app-usb-printer=n
 CONFIG_PACKAGE_luci-i18n-usb-printer-zh-cn=n
 " >> .config
-
-
 
 # ----- install -----
 # bash curl dos2unix unix2dos lrzsz
@@ -88,16 +68,4 @@ CONFIG_PACKAGE_nginx-mod-luci-ssl=y
 CONFIG_PACKAGE_nginx-util=y
 CONFIG_PACKAGE_nginx-ssl-util=y
 CONFIG_PACKAGE_nginx-ssl-util-nopcre=n
-" >> .config
-
-# udpxy
-echo "
-CONFIG_PACKAGE_luci-app-udpxy=y
-CONFIG_PACKAGE_udpxy=y
-" >> .config
-
-# vlmcsd
-echo "
-CONFIG_PACKAGE_luci-app-vlmcsd=y
-CONFIG_PACKAGE_vlmcsd=y
 " >> .config
