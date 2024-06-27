@@ -69,3 +69,9 @@ CONFIG_PACKAGE_nginx-util=y
 CONFIG_PACKAGE_nginx-ssl-util=n
 CONFIG_PACKAGE_nginx-ssl-util-nopcre=n
 " >> .config
+
+# vlmcsd
+echo "
+CONFIG_PACKAGE_luci-app-vlmcsd=y
+CONFIG_PACKAGE_vlmcsd=y
+" >> .config
