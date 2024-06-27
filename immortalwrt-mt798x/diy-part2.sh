@@ -57,15 +57,15 @@ CONFIG_PACKAGE_lrzsz=y
 # nginx Luci
 echo "
 # nginx-ssl includes nginx
-CONFIG_PACKAGE_luci-ssl-nginx=y
-CONFIG_PACKAGE_nginx=n
-CONFIG_PACKAGE_nginx-ssl=y
+CONFIG_PACKAGE_luci-ssl-nginx=n
+CONFIG_PACKAGE_nginx=y
+CONFIG_PACKAGE_nginx-ssl=n
 
 CONFIG_PACKAGE_nginx-all-module=n
 CONFIG_PACKAGE_nginx-mod-luci=y
-CONFIG_PACKAGE_nginx-mod-luci-ssl=y
+CONFIG_PACKAGE_nginx-mod-luci-ssl=n
 
 CONFIG_PACKAGE_nginx-util=y
-CONFIG_PACKAGE_nginx-ssl-util=y
+CONFIG_PACKAGE_nginx-ssl-util=n
 CONFIG_PACKAGE_nginx-ssl-util-nopcre=n
 " >> .config
