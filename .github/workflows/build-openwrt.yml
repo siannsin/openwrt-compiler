@@ -209,6 +209,7 @@ jobs:
           lib32gcc-s1 \
           libc6-dev-i386 \
           libelf-dev \
+          libfuse-dev \
           libglib2.0-dev \
           libgmp3-dev \
           libltdl-dev \
@@ -236,6 +237,8 @@ jobs:
           python3-docutils \
           python3-pip \
           python3-ply \
+          python3-pyelftools \
+          python3-setuptools \
           qemu-utils \
           re2c \
           rsync \
@@ -245,6 +248,7 @@ jobs:
           swig \
           texinfo \
           uglifyjs \
+          upx-ucl \
           unzip \
           vim \
           wget \
