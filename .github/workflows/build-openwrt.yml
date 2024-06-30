@@ -9,17 +9,17 @@ on:
       openwrt_branch:
         description: "Select openwrt branch"
         required: true
-        default: "openwrt;main"
+        default: "openwrt/main"
         type: choice
         options:
-          - openwrt;main
-          - openwrt;openwrt-23.05
-          - openwrt;openwrt-22.03
-          - openwrt;openwrt-21.02
-          - immortalwrt;master
-          - immortalwrt;openwrt-23.05
-          - immortalwrt;openwrt-21.02
-          - immortalwrt-mt798x;openwrt-21.02
+          - openwrt/main
+          - openwrt/openwrt-23.05
+          - openwrt/openwrt-22.03
+          - openwrt/openwrt-21.02
+          - immortalwrt/master
+          - immortalwrt/openwrt-23.05
+          - immortalwrt/openwrt-21.02
+          - immortalwrt-mt798x/openwrt-21.02
       device_branch:
         description: "Select device branch"
         required: true
@@ -30,10 +30,10 @@ on:
 
 env:
   TZ: Asia/Shanghai
-  DEFAULT_OPENWRT_BRANCH: "openwrt;main"
+  DEFAULT_OPENWRT_BRANCH: "openwrt/main"
   DEFAULT_DEVICE_BRANCH: "mt7981"
   # typeOfTesting: ${{ github.event_name == 'schedule' && 'stage-test-local-All' }}
-  openwrt_branch: ${{ inputs.openwrt_branch || 'openwrt;main' }}
+  openwrt_branch: ${{ inputs.openwrt_branch || 'openwrt/main' }}
   device_branch: ${{ inputs.device_branch || 'mt7981'}}
 
 jobs:
@@ -56,7 +56,7 @@ jobs:
           repo_diy="https://github.com/$GITHUB_REPOSITORY"
           repo_diy_owner="$GITHUB_REPOSITORY_OWNER"
 
-          IFS=';' read -ra BRANCHES <<< "${{ env.openwrt_branch }}"
+          IFS='/' read -ra BRANCHES <<< "${{ env.openwrt_branch }}"
           openwrt_branch=${BRANCHES[0]}
           repo_openwrt_branch=${BRANCHES[1]}
 
@@ -491,7 +491,7 @@ jobs:
           #   fi
           # done
 
-          echo -e "timestamp=$(date +"%y%mw%V")" >> ${GITHUB_OUTPUT}
+          echo -e "timestamp=$(date +"%y%m%d")" >> ${GITHUB_OUTPUT}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: "[release.md] Record release.md"
@@ -506,7 +506,7 @@ jobs:
           # 记录Clone源码的分支和构建者
           echo -e "# Build ${device_branch} - by ${repo_diy_owner}" >> ${release_md}
           echo -e "\n### OpenWrt branch" >> ${release_md}
-          echo -e "\n- [${openwrt_branch};${repo_openwrt_branch}](${repo_openwrt}/tree/${repo_openwrt_branch})" >> ${release_md}
+          echo -e "\n- [${openwrt_branch}/${repo_openwrt_branch}](${repo_openwrt/.git/}/tree/${repo_openwrt_branch})" >> ${release_md}
 
           # 记录编译完成时间
           echo -e "\n### Build Time" >> ${release_md}
@@ -542,7 +542,7 @@ jobs:
           # release_md: ${{ steps.record.outputs.record }}
         with:
           name: "${{ env.openwrt_branch }}_${{ env.device_branch }}_${{ env.timestamp }}"
-          tag: "${{ env.openwrt_branch }};${{ env.repo_openwrt_branch }}"
+          tag: "${{ env.openwrt_branch }}/${{ env.repo_openwrt_branch }}"
           artifacts: "${{ env.path_output }}/*"
           allowUpdates: true
           removeArtifacts: false
