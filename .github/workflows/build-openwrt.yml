@@ -29,7 +29,7 @@ on:
           - mt7981
 
 env:
-  TZ: UTC
+  TZ: Asia/Shanghai
   DEFAULT_OPENWRT_BRANCH: "openwrt;main"
   DEFAULT_DEVICE_BRANCH: "mt7981"
   # typeOfTesting: ${{ github.event_name == 'schedule' && 'stage-test-local-All' }}
