@@ -14,11 +14,11 @@ on:
       device_branch:
         description: "Select device branch"
         required: true
-        default: "ax3000t"
+        default: "all"
         type: choice
         options:
-          - ax3000t
           - all
+          - ax3000t
 
 env:
   TZ: Asia/Shanghai
