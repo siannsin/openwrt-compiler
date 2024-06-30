@@ -512,55 +512,6 @@ jobs:
           echo -e "\n### Build Time" >> ${release_md}
           echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
 
-          # 记录DIY_P1.sh
-          file_script=${diy_p1_sh}
-          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_script=$(grep '^[^#]' ${file_script} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-          # 折叠使用bash代码块 高亮代码
-          echo -e "\n### $(basename "${file_script}")" >> ${release_md}
-          echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
-          echo -e "\n```bash" >> ${release_md}
-          echo "${code_script}" >> ${release_md}
-          echo -e "```" >> ${release_md}
-          echo -e "\n</details>" >> ${release_md}
-
-          # 记录feeds.conf.default
-          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_feeds=$(grep '^[^#]' ${diy_feeds} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-          # 折叠使用bash代码块 高亮代码
-          echo -e "\n### $(basename "${diy_feeds}")" >> ${release_md}
-          echo -e "\n### feeds setting" >> ${release_md}
-          echo -e "\n<details>\n<summary>feeds.conf.default</summary>" >> ${release_md}
-          echo -e "\n```bash" >> ${release_md}
-          echo "${code_feeds}" >> ${release_md}
-          echo -e "```" >> ${release_md}
-          echo -e "\n</details>" >> ${release_md}
-
-          # 记录DIY_P2.sh
-          file_script=${diy_p2_sh}
-          # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-          code_script=$(grep '^[^#]' ${file_script} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-          # 折叠使用bash代码块 高亮代码
-          echo -e "\n### $(basename "${file_script}")" >> ${release_md}
-          echo -e "\n<details>\n<summary>Bash</summary>" >> ${release_md}
-          echo -e "\n```bash" >> ${release_md}
-          echo "${code_script}" >> ${release_md}
-          echo -e "```" >> ${release_md}
-          echo -e "\n</details>" >> ${release_md}
-
-          # 记录.config配置
-          if [[ -f ${diy_config} ]]; then
-            # 获取所有不以#开头的非空非空格行 并将结尾空格替换为换行符
-            config=$(grep '^[^#]' ${diy_config} | grep -v '^\s*$' | sed 's/\s+$/\\\n/g')
-            # 折叠使用makefile代码块 高亮config设置
-            echo -e "\n### config setting" >> ${release_md}
-            echo -e "\n<details>\n<summary>config</summary>" >> ${release_md}
-            echo -e "\n```makefile" >> ${release_md}
-            echo "${config}" >> ${release_md}
-            echo -e "```" >> ${release_md}
-            echo -e "\n</details>" >> ${release_md}
-          fi
-
           # 切换到Output目录
           # cd ${path_output}
           # echo -e "Current working directory: $(pwd)"
