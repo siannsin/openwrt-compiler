@@ -100,6 +100,7 @@ jobs:
           diy_config="${path_diy_branch}/${device_branch}.config"
           diy_feeds="${path_diy_branch}/feeds.conf.default"
           diy_p1_sh="${path_diy_branch}/diy-part1.sh"
+          diy_half_sh="${path_diy_branch}/diy-half.sh"
           diy_p2_sh="${path_diy_branch}/diy-part2.sh"
           diy_files="${path_diy_branch}/files"
           release_md="${path_diy_branch}/release.md"
@@ -107,6 +108,7 @@ jobs:
           echo "diy_config=${diy_config}" >> "$GITHUB_ENV"
           echo "diy_feeds=${diy_feeds}" >> "$GITHUB_ENV"
           echo "diy_p1_sh=${diy_p1_sh}" >> "$GITHUB_ENV"
+          echo "diy_half_sh=${diy_half_sh}" >> "$GITHUB_ENV"
           echo "diy_p2_sh=${diy_p2_sh}" >> "$GITHUB_ENV"
           echo "diy_files=${diy_files}" >> "$GITHUB_ENV"
           echo "release_md=${release_md}" >> "$GITHUB_ENV"
@@ -137,6 +139,7 @@ jobs:
           echo -e "diy_config: ${diy_config}"
           echo -e "diy_feeds: ${diy_feeds}"
           echo -e "diy_p1_sh: ${diy_p1_sh}"
+          echo -e "diy_half_sh: ${diy_half_sh}"
           echo -e "diy_p2_sh: ${diy_p2_sh}"
           echo -e "diy_files: ${diy_files}"
           echo -e "release_md: ${release_md}"
@@ -355,6 +358,19 @@ jobs:
           cat ./feeds.conf.default
           ./scripts/feeds update -a
           echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: (DIY_HALF.sh) after update feeds, before install feeds
+        working-directory: ${{ env.path_openwrt }}
+        env:
+          file_script: ${{ env.diy_half_sh }}
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          if [[ -e "${file_script}" ]]; then
+            echo -e "file_script: ${file_script}"
+            chmod +x ${file_script}
+            bash ${file_script}
+            cat ${file_script}
+          fi
 
       - name: Install feeds
         id: install
