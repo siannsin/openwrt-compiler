@@ -47,12 +47,14 @@ jobs:
 
           repo_target="https://github.com/hanwckf/bl-mt798x"
           repo_target_branch="master"
+          repo_name="bl-mt798x"
 
           echo "repo_diy=${repo_diy}" >> "$GITHUB_ENV"
           echo "repo_diy_owner=${repo_diy_owner}" >> "$GITHUB_ENV"
 
           echo "repo_target=${repo_target}" >> "$GITHUB_ENV"
           echo "repo_target_branch=${repo_target_branch}" >> "$GITHUB_ENV"
+          echo "repo_name=${repo_name}" >> "$GITHUB_ENV"
 
           # ========== Build Path ==========
           dir_build="builder"
@@ -82,14 +84,14 @@ jobs:
           # diy_p1_sh="${path_diy_branch}/diy-part1.sh"
           # diy_p2_sh="${path_diy_branch}/diy-part2.sh"
           # diy_files="${path_diy_branch}/files"
-          # release_md="${path_diy_branch}/release.md"
+          release_md="${path_diy_branch}/release.md"
 
           # echo "diy_config=${diy_config}" >> "$GITHUB_ENV"
           # echo "diy_feeds=${diy_feeds}" >> "$GITHUB_ENV"
           # echo "diy_p1_sh=${diy_p1_sh}" >> "$GITHUB_ENV"
           # echo "diy_p2_sh=${diy_p2_sh}" >> "$GITHUB_ENV"
           # echo "diy_files=${diy_files}" >> "$GITHUB_ENV"
-          # echo "release_md=${release_md}" >> "$GITHUB_ENV"
+          echo "release_md=${release_md}" >> "$GITHUB_ENV"
 
           # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -104,6 +106,7 @@ jobs:
           echo -e "repo_diy_owner: ${repo_diy_owner}"
           echo -e "repo_target: ${repo_target}"
           echo -e "repo_target_branch: ${repo_target_branch}"
+          echo -e "repo_name: ${repo_name}"
           echo -e "# ========== Build Path =========="
           echo -e "path_build: ${path_build}"
           echo -e "path_openwrt: ${path_openwrt}"
@@ -111,6 +114,7 @@ jobs:
           echo -e "path_backup: ${path_backup}"
           echo -e "path_diy: ${path_diy}"
           echo -e "path_diy_branch: ${path_diy_branch}"
+          echo -e "release_md: ${release_md}"
           # ========== END ==========
           echo "status=success" >> ${GITHUB_OUTPUT}
 
@@ -388,6 +392,33 @@ jobs:
           echo -e "timestamp=$(date +"%y%m%d")" >> ${GITHUB_OUTPUT}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
+      - name: "[release.md] Record release.md"
+        id: record
+        working-directory: ${{ env.path_openwrt }}
+        if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
+        run: |
+          echo -e "Current working directory: $(pwd)"
+
+          touch ${release_md}
+
+          # 记录Clone源码的分支
+          echo -e "\n### U-Boot Branch" >> ${release_md}
+          echo -e "\n- [${repo_name}](${repo_target})" >> ${release_md}
+
+          # 记录编译完成时间
+          echo -e "\n### Build Time" >> ${release_md}
+          echo -e "\n- $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
+
+          # 记录Output bin文件
+          echo -e "\n### Tested or NOT\n\n" >> ${release_md}
+          for file in ${path_output}/*.bin
+          do
+            if [[ ! -d "${file}" ]]
+            then
+              echo -e "- [ ] $(basename "${file}")" >> ${release_md}
+            fi
+          done
+
       - name: Upload OpenWrt to Release
         uses: ncipollo/release-action@main
         if: ${{ steps.output.outputs.status }} == 'success' && !cancelled()
@@ -402,7 +433,7 @@ jobs:
           removeArtifacts: false
           replacesArtifacts: true
           token: "${{ secrets.GITHUB_TOKEN }}"
-          # bodyFile: "${{ env.release_md }}"
+          bodyFile: "${{ env.release_md }}"
           body: ""
 
       - name: Clear workspace
