@@ -504,13 +504,12 @@ jobs:
           touch ${release_md}
 
           # 记录Clone源码的分支和构建者
-          echo -e "# Build ${device_branch} - by ${repo_diy_owner}" >> ${release_md}
           echo -e "\n### OpenWrt branch" >> ${release_md}
           echo -e "\n- [${openwrt_branch}/${repo_openwrt_branch}](${repo_openwrt/.git/}/tree/${repo_openwrt_branch})" >> ${release_md}
 
           # 记录编译完成时间
           echo -e "\n### Build Time" >> ${release_md}
-          echo -e "\n- [x] $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
+          echo -e "\n- $(date +"%Y-%m-%d %H:%M:%S %z")" >> ${release_md}
 
           # 切换到Output目录
           # cd ${path_output}
