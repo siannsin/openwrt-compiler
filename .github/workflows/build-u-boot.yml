@@ -84,7 +84,7 @@ jobs:
           # diy_p1_sh="${path_diy_branch}/diy-part1.sh"
           # diy_p2_sh="${path_diy_branch}/diy-part2.sh"
           # diy_files="${path_diy_branch}/files"
-          release_md="${path_output}/release.md"
+          release_md="${path_diy}/release.md"
 
           # echo "diy_config=${diy_config}" >> "$GITHUB_ENV"
           # echo "diy_feeds=${diy_feeds}" >> "$GITHUB_ENV"
@@ -399,6 +399,7 @@ jobs:
         run: |
           echo -e "Current working directory: $(pwd)"
 
+          [[ -e "${path_diy}" ]] || mkdir -p ${path_diy}
           touch ${release_md}
 
           # 记录Clone源码的分支
