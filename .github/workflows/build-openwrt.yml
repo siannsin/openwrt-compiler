@@ -504,7 +504,7 @@ jobs:
           touch ${release_md}
 
           # 记录Clone源码的分支和构建者
-          echo -e "\n### OpenWrt branch" >> ${release_md}
+          echo -e "\n### OpenWrt Branch" >> ${release_md}
           echo -e "\n- [${openwrt_branch}/${repo_openwrt_branch}](${repo_openwrt/.git/}/tree/${repo_openwrt_branch})" >> ${release_md}
 
           # 记录编译完成时间
